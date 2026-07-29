@@ -12,11 +12,17 @@ class Attendance extends Model
 
     protected $fillable = [
         'user_id',
+        'office_id',
         'attendance_date',
         'check_in',
         'check_out',
         'status',
         'late_minutes',
+        'notes',
+        'latitude',
+        'longitude',
+        'accuracy',
+        'distance',
     ];
 
     protected function casts(): array
@@ -32,4 +38,10 @@ class Attendance extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function office(): BelongsTo
+    {
+        return $this->belongsTo(Office::class);
+    }
+
 }

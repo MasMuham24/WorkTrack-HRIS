@@ -30,17 +30,40 @@
                         <h3 class="text-base font-semibold text-slate-800">Anda belum melakukan Check In hari ini</h3>
                         <p class="text-sm text-slate-500 mt-1">Jam masuk kerja pukul 08:00 WIB, jam pulang pukul 16:00 WIB. Harap melakukan check-in tepat waktu.</p>
                     </div>
-                    <form action="{{ route('employee.attendance.check-in') }}" method="POST" class="inline-block">
-                        @csrf
-                        <button type="submit" class="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 border border-transparent rounded-xl font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg shadow-indigo-600/20 transition-all transform hover:-translate-y-0.5">
+                    <div id="checkin-button">
+                        <button type="button" id="checkin-btn" class="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 border border-transparent rounded-xl font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg shadow-indigo-600/20 transition-all transform hover:-translate-y-0.5">
                             <i data-feather="log-in" class="w-5 h-5 mr-2"></i>
-                            Check In Sekarang
+                            Check In Sekarang (Deteksi Lokasi)
                         </button>
-                    </form>
+                    </div>
                 </div>
             @elseif(!$todayAttendance->check_out)
                 <!-- Sudah Check In, Belum Check Out (Tombol berubah menjadi Check Out) -->
                 <div class="space-y-6">
+                    <!-- Location Info Display -->
+                    @if($todayAttendance->office)
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <p class="text-sm font-medium text-blue-800">Kantor Terdaftar: <span class="font-semibold">{{ $todayAttendance->office->name }}</span></p>
+                                <p class="text-sm text-blue-600">Radius: {{ number_format($todayAttendance->office->radius) }} meter</p>
+                            </div>
+                            <div>
+                                @if($todayAttendance->latitude && $todayAttendance->longitude)
+                                <p class="text-sm font-medium text-blue-800">Lokasi Anda:</p>
+                                <p class="text-sm text-blue-600">Lat: {{ number_format($todayAttendance->latitude, 6) }}, Lon: {{ number_format($todayAttendance->longitude, 6) }}</p>
+                                @if($todayAttendance->distance)
+                                <p class="text-sm text-blue-600">Jarak: {{ number_format($todayAttendance->distance, 0) }} meter dari kantor</p>
+                                @endif
+                                @if($todayAttendance->accuracy)
+                                <p class="text-sm text-blue-600">Akurasi GPS: {{ number_format($todayAttendance->accuracy, 2) }} meter</p>
+                                @endif
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div class="bg-slate-50 p-4 rounded-xl">
                             <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Jam Masuk</span>
@@ -68,18 +91,38 @@
                     </div>
 
                     <div class="text-center pt-2">
-                        <form action="{{ route('employee.attendance.check-out') }}" method="POST" class="inline-block">
-                            @csrf
-                            <button type="submit" class="inline-flex items-center justify-center px-6 py-3 bg-emerald-600 border border-transparent rounded-xl font-semibold text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-lg shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5">
+                        <div id="checkout-button">
+                            <button type="button" id="checkout-btn" class="inline-flex items-center justify-center px-6 py-3 bg-emerald-600 border border-transparent rounded-xl font-semibold text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-lg shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5">
                                 <i data-feather="log-out" class="w-5 h-5 mr-2"></i>
-                                Check Out Sekarang
+                                Check Out Sekarang (Deteksi Lokasi)
                             </button>
-                        </form>
+                        </div>
                     </div>
                 </div>
             @else
                 <!-- Sudah Selesai Check In & Check Out (Tombol Disabled) -->
                 <div class="space-y-6">
+                    <!-- Location Info Display -->
+                    @if($todayAttendance->office)
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <p class="text-sm font-medium text-blue-800">Kantor Terdaftar: <span class="font-semibold">{{ $todayAttendance->office->name }}</span></p>
+                                <p class="text-sm text-blue-600">Radius: {{ number_format($todayAttendance->office->radius) }} meter</p>
+                            </div>
+                            <div>
+                                @if($todayAttendance->latitude && $todayAttendance->longitude)
+                                <p class="text-sm font-medium text-blue-800">Lokasi Anda:</p>
+                                <p class="text-sm text-blue-600">Lat: {{ number_format($todayAttendance->latitude, 6) }}, Lon: {{ number_format($todayAttendance->longitude, 6) }}</p>
+                                @if($todayAttendance->distance)
+                                <p class="text-sm text-blue-600">Jarak: {{ number_format($todayAttendance->distance, 0) }} meter dari kantor</p>
+                                @endif
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div class="bg-slate-50 p-4 rounded-xl">
                             <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Jam Masuk</span>
@@ -133,6 +176,8 @@
                         <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanggal</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Jam Masuk</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Jam Keluar</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Kantor</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Jarak</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Keterlambatan</th>
                     </tr>
@@ -148,6 +193,16 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                                 {{ $att->check_out ?? '-' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                {{ $att->office ? $att->office->name : 'Tidak terdaftar' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                @if($att->distance)
+                                    <span class="font-medium">{{ number_format($att->distance, 0) }} m</span>
+                                @else
+                                    <span class="text-slate-400">-</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                 @if($att->status === 'terlambat')
@@ -174,7 +229,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-slate-400 text-sm">
+                            <td colspan="7" class="px-6 py-12 text-center text-slate-400 text-sm">
                                 Belum ada riwayat absensi tercatat.
                             </td>
                         </tr>
@@ -191,3 +246,152 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    function getLocation() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation tidak didukung oleh browser ini'));
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    });
+                },
+                (error) => {
+                    reject(error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        });
+    }
+
+    async function performCheckIn() {
+        const button = document.getElementById('checkin-btn');
+        const originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="w-5 h-5 mr-2 animate-spin" data-feather="loader">Loading...</i> Mendeteksi lokasi...';
+        feather.replace();
+
+        try {
+            const location = await getLocation();
+            const formData = new FormData();
+            formData.append('latitude', location.latitude);
+            formData.append('longitude', location.longitude);
+            formData.append('accuracy', location.accuracy || '');
+            formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+
+            const response = await fetch('{{ route("employee.attendance.check-in") }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: data.message,
+                    confirmButtonColor: '#10b981'
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: data.message || 'Terjadi kesalahan saat check in',
+                    confirmButtonColor: '#ef4444'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error Lokasi',
+                text: 'Tidak dapat mendapatkan lokasi: ' + error.message,
+                confirmButtonColor: '#ef4444'
+            });
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalHtml;
+            feather.replace();
+        }
+    }
+
+    async function performCheckOut() {
+        const button = document.getElementById('checkout-btn');
+        const originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="w-5 h-5 mr-2 animate-spin" data-feather="loader">Loading...</i> Mendeteksi lokasi...';
+        feather.replace();
+
+        try {
+            const location = await getLocation();
+            const formData = new FormData();
+            formData.append('latitude', location.latitude);
+            formData.append('longitude', location.longitude);
+            formData.append('accuracy', location.accuracy || '');
+            formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+
+            const response = await fetch('{{ route("employee.attendance.check-out") }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: data.message,
+                    confirmButtonColor: '#10b981'
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: data.message || 'Terjadi kesalahan saat check out',
+                    confirmButtonColor: '#ef4444'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error Lokasi',
+                text: 'Tidak dapat mendapatkan lokasi: ' + error.message,
+                confirmButtonColor: '#ef4444'
+            });
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalHtml;
+            feather.replace();
+        }
+    }
+
+    document.getElementById('checkin-btn')?.addEventListener('click', performCheckIn);
+    document.getElementById('checkout-btn')?.addEventListener('click', performCheckOut);
+</script>
+@endpush
+</content>
