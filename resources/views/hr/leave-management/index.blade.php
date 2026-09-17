@@ -269,12 +269,23 @@
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         const updateUrl = "{{ route('hr.leave-requests.update', ':ID') }}";
+        const notificationShowUrl = "{{ route('hr.leave-requests.show', ':ID') }}";
+
+        const NOTIFICATION_KEY = 'hr_leave_notifications';
+        const MAX_NOTIFICATIONS = 50;
 
         const leaveTypeLabels = {
             cuti: 'cuti',
             sakit: 'izin sakit',
             penting: 'izin kepentingan',
             lainnya: 'izin lainnya'
+        };
+
+        const notificationTypeLabels = {
+            cuti: 'Cuti',
+            sakit: 'Izin Sakit',
+            penting: 'Izin Penting',
+            lainnya: 'Izin'
         };
 
         function escapeHtml(value) {
@@ -445,6 +456,173 @@
             }, 5000);
         }
 
+        function getNotifications() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem(NOTIFICATION_KEY));
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                console.error('[HR Notifications] Gagal membaca localStorage:', error);
+                return [];
+            }
+        }
+
+        function saveNotifications(notifications) {
+            try {
+                localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
+            } catch (error) {
+                console.error('[HR Notifications] Gagal menyimpan localStorage:', error);
+            }
+        }
+
+        function getUnreadCount() {
+            return getNotifications().filter(function (notification) {
+                return !notification.read;
+            }).length;
+        }
+
+        function updateBellBadge() {
+            const badge = document.getElementById('notification-badge');
+            if (!badge) {
+                return;
+            }
+            const count = getUnreadCount();
+            badge.textContent = count > 99 ? '99+' : String(count || '');
+            badge.style.display = count > 0 ? 'flex' : 'none';
+        }
+
+        function storeNotification(request) {
+            const notifications = getNotifications();
+
+            const alreadyExists = notifications.some(function (notification) {
+                return Number(notification.id) === Number(request.id);
+            });
+
+            if (alreadyExists) {
+                return false;
+            }
+
+            notifications.unshift({
+                id: request.id,
+                employee: request.name,
+                leave_type: request.leave_type,
+                created_at: request.created_at,
+                read: false
+            });
+
+            if (notifications.length > MAX_NOTIFICATIONS) {
+                notifications.splice(MAX_NOTIFICATIONS);
+            }
+
+            saveNotifications(notifications);
+
+            return true;
+        }
+
+        function renderNotifications(list) {
+            const notifications = getNotifications();
+
+            if (notifications.length === 0) {
+                list.innerHTML =
+                    '<div class="px-4 py-10 text-center">' +
+                    '<span class="text-2xl">🔔</span>' +
+                    '<p class="text-sm text-slate-400 mt-2">Belum ada notifikasi</p>' +
+                    '</div>';
+                return;
+            }
+
+            list.innerHTML = notifications.map(function (notification) {
+                const typeLabel = notificationTypeLabels[notification.leave_type] || notification.leave_type;
+                const employee = escapeHtml(notification.employee || '-');
+                const time = escapeHtml(timeAgo(notification.created_at));
+                const unread = !notification.read;
+
+                return '' +
+                    '<div class="notification-item px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-start gap-3 transition-colors" data-id="' + notification.id + '"' + (unread ? ' style="background-color: rgba(99, 102, 241, 0.06);"' : '') + '>' +
+                    '<span class="mt-1.5 h-2 w-2 rounded-full flex-shrink-0 ' + (unread ? 'bg-indigo-500' : 'bg-transparent') + '"></span>' +
+                    '<div class="min-w-0 flex-1">' +
+                    '<p class="text-sm font-semibold text-slate-800">' + employee + '</p>' +
+                    '<p class="text-xs text-slate-500">Mengajukan ' + escapeHtml(typeLabel) + '</p>' +
+                    '<p class="text-xs text-slate-400 mt-0.5">' + time + '</p>' +
+                    '</div>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function getNotificationPanel() {
+            let panel = document.getElementById('notification-panel');
+            if (panel) {
+                return panel;
+            }
+
+            panel = document.createElement('div');
+            panel.id = 'notification-panel';
+            panel.className = 'fixed top-16 right-4 z-[9999] w-[360px] max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden hidden';
+            panel.innerHTML =
+                '<div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">' +
+                '<h3 class="text-sm font-semibold text-slate-800">Notifications</h3>' +
+                '<span class="text-lg leading-none">🔔</span>' +
+                '</div>' +
+                '<div id="notification-list" class="max-h-[60vh] overflow-y-auto divide-y divide-slate-100"></div>' +
+                '<div class="px-4 py-2 border-t border-slate-200">' +
+                '<button id="mark-all-read" type="button" class="w-full text-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 py-1">Mark all as read</button>' +
+                '</div>';
+
+            document.body.appendChild(panel);
+
+            document.getElementById('notification-list').addEventListener('click', function (event) {
+                const item = event.target.closest('.notification-item');
+                if (!item) {
+                    return;
+                }
+                openNotificationDetail(item.getAttribute('data-id'));
+            });
+
+            document.getElementById('mark-all-read').addEventListener('click', function () {
+                const notifications = getNotifications();
+                notifications.forEach(function (notification) {
+                    notification.read = true;
+                });
+                saveNotifications(notifications);
+                updateBellBadge();
+                renderNotifications(document.getElementById('notification-list'));
+            });
+
+            return panel;
+        }
+
+        function openNotificationPanel() {
+            const panel = getNotificationPanel();
+            renderNotifications(document.getElementById('notification-list'));
+            panel.classList.remove('hidden');
+        }
+
+        function closeNotificationPanel() {
+            const panel = document.getElementById('notification-panel');
+            if (panel) {
+                panel.classList.add('hidden');
+            }
+        }
+
+        function toggleNotificationPanel() {
+            const panel = getNotificationPanel();
+            const isHidden = panel.classList.contains('hidden');
+            if (isHidden) {
+                openNotificationPanel();
+            } else {
+                closeNotificationPanel();
+            }
+        }
+
+        function openNotificationDetail(id) {
+            const notifications = getNotifications().map(function (notification) {
+                return Number(notification.id) === Number(id) ? { ...notification, read: true } : notification;
+            });
+            saveNotifications(notifications);
+            updateBellBadge();
+            closeNotificationPanel();
+            window.location.href = notificationShowUrl.replace(':ID', id);
+        }
+
         function processRequests(data) {
             const latestId = Number(data.latest_id || 0);
 
@@ -476,6 +654,12 @@
             const canInsert = shouldInsertRows();
 
             newRequests.forEach(function (request) {
+                if (!storeNotification(request)) {
+                    return;
+                }
+
+                updateBellBadge();
+
                 if (canInsert) {
                     insertRequestRow(request);
                 }
@@ -528,7 +712,30 @@
             }
         }
 
+        function bindNotificationBell() {
+            const bell = document.getElementById('notification-bell');
+            if (bell) {
+                bell.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    toggleNotificationPanel();
+                });
+            }
+
+            document.addEventListener('click', function (event) {
+                const panel = document.getElementById('notification-panel');
+                if (!panel || panel.classList.contains('hidden')) {
+                    return;
+                }
+                if (event.target.closest('#notification-bell') || event.target.closest('#notification-panel')) {
+                    return;
+                }
+                closeNotificationPanel();
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
+            updateBellBadge();
+            bindNotificationBell();
             loadLiveLeaveRequests();
             startPolling();
         });

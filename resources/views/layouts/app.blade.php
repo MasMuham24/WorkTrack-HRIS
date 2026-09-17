@@ -107,12 +107,15 @@
                     </h1>
                 </div>
 
-                <div class="flex items-center space-x-4">
+<div class="flex items-center space-x-4">
                     <!-- Notifications -->
-                    <button class="text-slate-500 hover:text-indigo-600 transition-colors relative">
+                    <button id="notification-bell" type="button"
+                        class="text-slate-500 hover:text-indigo-600 transition-colors relative"
+                        aria-label="Notifikasi" title="Notifikasi">
                         <i data-feather="bell" class="w-5 h-5"></i>
-                        <span
-                            class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                        <span id="notification-badge"
+                            class="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold items-center justify-center ring-2 ring-white"
+                            style="display: none;"></span>
                     </button>
 
                     <!-- Profile Dropdown (Top right) -->
