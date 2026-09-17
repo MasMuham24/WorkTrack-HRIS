@@ -10,26 +10,35 @@
             <h2 class="text-xl font-bold text-slate-800">Pengajuan Cuti & Izin</h2>
             <p class="text-sm text-slate-500 mt-1">Approval dan riwayat pengajuan cuti & izin karyawan.</p>
         </div>
+        <div class="flex items-center">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200" title="Statistik diperbarui otomatis setiap 10 detik">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                Live update
+            </span>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-slate-800">Cuti</h3>
-                <span class="text-xs text-slate-500">{{ $pendingCuti }} pending</span>
+                <span class="text-xs text-slate-500"><span id="header-pending-cuti">{{ $pendingCuti }}</span> pending</span>
             </div>
             <div class="grid grid-cols-3 gap-3 mb-4">
                 <div class="bg-amber-50 rounded-lg p-3 text-center">
                     <p class="text-xs font-semibold text-slate-500">Pending</p>
-                    <p class="text-lg font-bold text-amber-600">{{ $pendingCuti }}</p>
+                    <p class="text-lg font-bold text-amber-600"><span id="pending-cuti-count">{{ $pendingCuti }}</span></p>
                 </div>
                 <div class="bg-emerald-50 rounded-lg p-3 text-center">
                     <p class="text-xs font-semibold text-slate-500">Disetujui</p>
-                    <p class="text-lg font-bold text-emerald-600">{{ $approvedCuti }}</p>
+                    <p class="text-lg font-bold text-emerald-600"><span id="approved-cuti-count">{{ $approvedCuti }}</span></p>
                 </div>
                 <div class="bg-rose-50 rounded-lg p-3 text-center">
                     <p class="text-xs font-semibold text-slate-500">Ditolak</p>
-                    <p class="text-lg font-bold text-rose-600">{{ $rejectedCuti }}</p>
+                    <p class="text-lg font-bold text-rose-600"><span id="rejected-cuti-count">{{ $rejectedCuti }}</span></p>
                 </div>
             </div>
             <div class="overflow-x-auto">
@@ -104,20 +113,20 @@
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-slate-800">Izin</h3>
-                <span class="text-xs text-slate-500">{{ $pendingIzin }} pending</span>
+                <span class="text-xs text-slate-500"><span id="header-pending-izin">{{ $pendingIzin }}</span> pending</span>
             </div>
             <div class="grid grid-cols-3 gap-3 mb-4">
                 <div class="bg-amber-50 rounded-lg p-3 text-center">
                     <p class="text-xs font-semibold text-slate-500">Pending</p>
-                    <p class="text-lg font-bold text-amber-600">{{ $pendingIzin }}</p>
+                    <p class="text-lg font-bold text-amber-600"><span id="pending-izin-count">{{ $pendingIzin }}</span></p>
                 </div>
                 <div class="bg-emerald-50 rounded-lg p-3 text-center">
                     <p class="text-xs font-semibold text-slate-500">Disetujui</p>
-                    <p class="text-lg font-bold text-emerald-600">{{ $approvedIzin }}</p>
+                    <p class="text-lg font-bold text-emerald-600"><span id="approved-izin-count">{{ $approvedIzin }}</span></p>
                 </div>
                 <div class="bg-rose-50 rounded-lg p-3 text-center">
                     <p class="text-xs font-semibold text-slate-500">Ditolak</p>
-                    <p class="text-lg font-bold text-rose-600">{{ $rejectedIzin }}</p>
+                    <p class="text-lg font-bold text-rose-600"><span id="rejected-izin-count">{{ $rejectedIzin }}</span></p>
                 </div>
             </div>
             <div class="overflow-x-auto">
@@ -191,3 +200,76 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<style>
+    .stat-flash {
+        animation: stat-pulse 0.6s ease;
+    }
+
+    @keyframes stat-pulse {
+        0% {
+            background-color: rgba(16, 185, 129, 0.35);
+        }
+        100% {
+            background-color: transparent;
+        }
+    }
+</style>
+<script>
+    function loadLeaveStatistics() {
+        const url = "{{ route('hr.leave-requests.statistics') }}";
+
+        fetch(url, {
+            cache: 'no-store',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('Request failed with status ' + response.status);
+                }
+                return response.json();
+            })
+            .then(function (data) {
+                const fields = [
+                    ['pending-cuti-count', 'pendingCuti'],
+                    ['approved-cuti-count', 'approvedCuti'],
+                    ['rejected-cuti-count', 'rejectedCuti'],
+                    ['pending-izin-count', 'pendingIzin'],
+                    ['approved-izin-count', 'approvedIzin'],
+                    ['rejected-izin-count', 'rejectedIzin'],
+                    ['header-pending-cuti', 'pendingCuti'],
+                    ['header-pending-izin', 'pendingIzin']
+                ];
+
+                fields.forEach(function (field) {
+                    const element = document.getElementById(field[0]);
+                    if (!element) {
+                        return;
+                    }
+
+                    const value = data[field[1]];
+
+                    if (element.textContent !== String(value)) {
+                        element.textContent = value;
+
+                        element.classList.remove('stat-flash');
+                        void element.offsetWidth;
+                        element.classList.add('stat-flash');
+                    }
+                });
+            })
+            .catch(function (error) {
+                console.error('[HR Leave Statistics] Gagal memuat statistik, akan dicoba lagi di interval berikutnya:', error);
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        loadLeaveStatistics();
+        setInterval(loadLeaveStatistics, 10000);
+    });
+</script>
+@endpush

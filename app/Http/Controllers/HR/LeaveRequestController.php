@@ -4,6 +4,7 @@ namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -34,6 +35,18 @@ class LeaveRequestController extends Controller
     {
         $leaveRequest = LeaveRequest::with(['user', 'approver'])->findOrFail($id);
         return view('hr.leave-requests.show', compact('leaveRequest'));
+    }
+
+    public function statistics(): JsonResponse
+    {
+        return response()->json([
+            'pendingCuti' => LeaveRequest::query()->where('status', 'pending')->where('leave_type', 'cuti')->count(),
+            'approvedCuti' => LeaveRequest::query()->where('status', 'approved')->where('leave_type', 'cuti')->count(),
+            'rejectedCuti' => LeaveRequest::query()->where('status', 'rejected')->where('leave_type', 'cuti')->count(),
+            'pendingIzin' => LeaveRequest::query()->where('status', 'pending')->whereIn('leave_type', ['sakit', 'penting', 'lainnya'])->count(),
+            'approvedIzin' => LeaveRequest::query()->where('status', 'approved')->whereIn('leave_type', ['sakit', 'penting', 'lainnya'])->count(),
+            'rejectedIzin' => LeaveRequest::query()->where('status', 'rejected')->whereIn('leave_type', ['sakit', 'penting', 'lainnya'])->count(),
+        ]);
     }
 
     public function update(Request $request, string $id): RedirectResponse
