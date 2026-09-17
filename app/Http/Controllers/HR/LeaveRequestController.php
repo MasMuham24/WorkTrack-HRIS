@@ -49,6 +49,41 @@ class LeaveRequestController extends Controller
         ]);
     }
 
+    public function live(): JsonResponse
+    {
+        $requests = LeaveRequest::query()
+            ->with(['user', 'user.department'])
+            ->where('status', 'pending')
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(fn (LeaveRequest $request) => [
+                'id' => $request->id,
+                'name' => $request->user->name ?? '-',
+                'department' => $request->user->department->name ?? '-',
+                'leave_type' => $request->leave_type,
+                'start_date' => $request->start_date?->format('Y-m-d'),
+                'end_date' => $request->end_date?->format('Y-m-d'),
+                'reason' => $request->reason,
+                'status' => $request->status,
+                'created_at' => $request->created_at?->toIso8601String(),
+            ]);
+
+        $latestRequest = LeaveRequest::latest('id')->first();
+
+        return response()->json([
+            'total_pending' => LeaveRequest::query()->where('status', 'pending')->count(),
+            'latest_id' => $latestRequest?->id ?? 0,
+            'pendingCuti' => LeaveRequest::query()->where('status', 'pending')->where('leave_type', 'cuti')->count(),
+            'approvedCuti' => LeaveRequest::query()->where('status', 'approved')->where('leave_type', 'cuti')->count(),
+            'rejectedCuti' => LeaveRequest::query()->where('status', 'rejected')->where('leave_type', 'cuti')->count(),
+            'pendingIzin' => LeaveRequest::query()->where('status', 'pending')->whereIn('leave_type', ['sakit', 'penting', 'lainnya'])->count(),
+            'approvedIzin' => LeaveRequest::query()->where('status', 'approved')->whereIn('leave_type', ['sakit', 'penting', 'lainnya'])->count(),
+            'rejectedIzin' => LeaveRequest::query()->where('status', 'rejected')->whereIn('leave_type', ['sakit', 'penting', 'lainnya'])->count(),
+            'requests' => $requests,
+        ]);
+    }
+
     public function update(Request $request, string $id): RedirectResponse
     {
         $validated = $request->validate([

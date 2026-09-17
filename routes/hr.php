@@ -11,6 +11,7 @@ Route::middleware(['auth', 'role:hr'])->prefix('hr')->name('hr.')->group(functio
     Route::get('/leave-management', [LeaveManagementController::class, 'index'])->name('leave-management.index');
     Route::get('leave-requests', [LeaveRequestController::class, 'index'])->name('leave-requests.index');
     Route::get('leave-requests/statistics', [LeaveRequestController::class, 'statistics'])->name('leave-requests.statistics');
+    Route::get('leave-requests/live', [LeaveRequestController::class, 'live'])->name('leave-requests.live');
     Route::get('leave-requests/{leave_request}', [LeaveRequestController::class, 'show'])->name('leave-requests.show');
     Route::put('leave-requests/{leave_request}', [LeaveRequestController::class, 'update'])->name('leave-requests.update');
 

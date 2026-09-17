@@ -10,18 +10,19 @@
             <h2 class="text-xl font-bold text-slate-800">Pengajuan Cuti & Izin</h2>
             <p class="text-sm text-slate-500 mt-1">Approval dan riwayat pengajuan cuti & izin karyawan.</p>
         </div>
-        <div class="flex items-center">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200" title="Statistik diperbarui otomatis setiap 10 detik">
+        <div class="flex items-center gap-3">
+            <span class="text-xs text-slate-500">Last updated: <span id="last-updated" class="font-medium text-emerald-600">just now</span></span>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200" title="Data & statistik diperbarui otomatis setiap 10 detik">
                 <span class="relative flex h-2 w-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                Live update
+                Live
             </span>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div id="leave-request-table" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-slate-800">Cuti</h3>
@@ -51,7 +52,7 @@
                             <th class="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-200">
+                    <tbody id="tbody-cuti" class="divide-y divide-slate-200">
                         @forelse($cutiRequests as $item)
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="px-3 py-3 whitespace-nowrap">
@@ -139,7 +140,7 @@
                             <th class="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-200">
+                    <tbody id="tbody-izin" class="divide-y divide-slate-200">
                         @forelse($izinRequests as $item)
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="px-3 py-3 whitespace-nowrap">
@@ -215,61 +216,331 @@
             background-color: transparent;
         }
     }
-</style>
-<script>
-    function loadLeaveStatistics() {
-        const url = "{{ route('hr.leave-requests.statistics') }}";
 
-        fetch(url, {
-            cache: 'no-store',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-            .then(function (response) {
-                if (!response.ok) {
-                    throw new Error('Request failed with status ' + response.status);
-                }
-                return response.json();
-            })
-            .then(function (data) {
-                const fields = [
-                    ['pending-cuti-count', 'pendingCuti'],
-                    ['approved-cuti-count', 'approvedCuti'],
-                    ['rejected-cuti-count', 'rejectedCuti'],
-                    ['pending-izin-count', 'pendingIzin'],
-                    ['approved-izin-count', 'approvedIzin'],
-                    ['rejected-izin-count', 'rejectedIzin'],
-                    ['header-pending-cuti', 'pendingCuti'],
-                    ['header-pending-izin', 'pendingIzin']
-                ];
-
-                fields.forEach(function (field) {
-                    const element = document.getElementById(field[0]);
-                    if (!element) {
-                        return;
-                    }
-
-                    const value = data[field[1]];
-
-                    if (element.textContent !== String(value)) {
-                        element.textContent = value;
-
-                        element.classList.remove('stat-flash');
-                        void element.offsetWidth;
-                        element.classList.add('stat-flash');
-                    }
-                });
-            })
-            .catch(function (error) {
-                console.error('[HR Leave Statistics] Gagal memuat statistik, akan dicoba lagi di interval berikutnya:', error);
-            });
+    .new-request {
+        animation: new-request-highlight 2.5s ease;
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        loadLeaveStatistics();
-        setInterval(loadLeaveStatistics, 10000);
-    });
+    @keyframes new-request-highlight {
+        0% {
+            background-color: rgba(99, 102, 241, 0.25);
+        }
+        100% {
+            background-color: transparent;
+        }
+    }
+
+    .toast-enter {
+        animation: toast-slide-in 0.3s ease;
+    }
+
+    .toast-exit {
+        animation: toast-fade-out 0.4s ease forwards;
+    }
+
+    @keyframes toast-slide-in {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes toast-fade-out {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+</style>
+<script>
+    (function () {
+        let latestLeaveRequestId = null;
+        let isFirstLoad = true;
+        let pollingTimer = null;
+        const pollInterval = 10000;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const updateUrl = "{{ route('hr.leave-requests.update', ':ID') }}";
+
+        const leaveTypeLabels = {
+            cuti: 'cuti',
+            sakit: 'izin sakit',
+            penting: 'izin kepentingan',
+            lainnya: 'izin lainnya'
+        };
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatDate(dateString) {
+            const parts = String(dateString || '').slice(0, 10).split('-');
+            if (parts.length !== 3) {
+                return '-';
+            }
+            return parts[2] + '/' + parts[1];
+        }
+
+        function timeAgo(dateString) {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return '';
+            }
+            const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
+            if (minutes < 1) {
+                return 'baru saja';
+            }
+            if (minutes < 60) {
+                return minutes + ' menit yang lalu';
+            }
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) {
+                return hours + ' jam yang lalu';
+            }
+            return Math.floor(hours / 24) + ' hari yang lalu';
+        }
+
+        function flashElement(element) {
+            if (!element) {
+                return;
+            }
+            element.classList.remove('stat-flash');
+            void element.offsetWidth;
+            element.classList.add('stat-flash');
+        }
+
+        function updateStatistics(data) {
+            const fields = [
+                ['pending-cuti-count', 'pendingCuti'],
+                ['approved-cuti-count', 'approvedCuti'],
+                ['rejected-cuti-count', 'rejectedCuti'],
+                ['pending-izin-count', 'pendingIzin'],
+                ['approved-izin-count', 'approvedIzin'],
+                ['rejected-izin-count', 'rejectedIzin'],
+                ['header-pending-cuti', 'pendingCuti'],
+                ['header-pending-izin', 'pendingIzin']
+            ];
+
+            fields.forEach(function (field) {
+                const element = document.getElementById(field[0]);
+                if (!element) {
+                    return;
+                }
+                const value = data[field[1]];
+                if (element.textContent !== String(value)) {
+                    element.textContent = value;
+                    flashElement(element);
+                }
+            });
+        }
+
+        function buildRequestRow(request) {
+            const actionUrl = updateUrl.replace(':ID', request.id);
+            const initial = escapeHtml((request.name || 'U').charAt(0)).toUpperCase();
+            const name = escapeHtml(request.name);
+            const dateRange = formatDate(request.start_date) + ' - ' + formatDate(request.end_date);
+
+            return '' +
+                '<tr class="new-request hover:bg-slate-50 transition-colors">' +
+                '<td class="px-3 py-3 whitespace-nowrap">' +
+                '<div class="flex items-center">' +
+                '<div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs mr-2">' + initial + '</div>' +
+                '<span class="text-sm font-medium text-slate-800">' + name + '</span>' +
+                '</div>' +
+                '</td>' +
+                '<td class="px-3 py-3 whitespace-nowrap text-xs text-slate-600">' + dateRange + '</td>' +
+                '<td class="px-3 py-3 whitespace-nowrap">' +
+                '<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">Pending</span>' +
+                '</td>' +
+                '<td class="px-3 py-3 whitespace-nowrap">' +
+                '<div class="flex items-center gap-1">' +
+                '<form action="' + actionUrl + '" method="POST" class="m-0">' +
+                '<input type="hidden" name="_token" value="' + csrfToken + '">' +
+                '<input type="hidden" name="_method" value="PUT">' +
+                '<input type="hidden" name="status" value="approved">' +
+                '<button type="submit" class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 hover:bg-emerald-200">ACC</button>' +
+                '</form>' +
+                '<form action="' + actionUrl + '" method="POST" class="m-0">' +
+                '<input type="hidden" name="_token" value="' + csrfToken + '">' +
+                '<input type="hidden" name="_method" value="PUT">' +
+                '<input type="hidden" name="status" value="rejected">' +
+                '<button type="submit" class="px-2 py-0.5 text-xs font-semibold rounded-full bg-rose-100 text-rose-800 hover:bg-rose-200">REJ</button>' +
+                '</form>' +
+                '</div>' +
+                '</td>' +
+                '</tr>';
+        }
+
+        function shouldInsertRows() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('status') || params.has('leave_type')) {
+                return false;
+            }
+            const page = params.get('page');
+            return !page || page === '1';
+        }
+
+        function insertRequestRow(request) {
+            const tbody = document.getElementById(request.leave_type === 'cuti' ? 'tbody-cuti' : 'tbody-izin');
+            if (!tbody) {
+                return;
+            }
+
+            const emptyRow = tbody.querySelector('td[colspan="4"]');
+            if (emptyRow) {
+                tbody.replaceChildren();
+            }
+
+            tbody.insertAdjacentHTML('afterbegin', buildRequestRow(request));
+
+            const firstRow = tbody.querySelector('tr');
+            if (firstRow) {
+                setTimeout(function () {
+                    firstRow.classList.remove('new-request');
+                }, 3000);
+            }
+        }
+
+        function showLeaveNotification(request) {
+            const container = document.getElementById('notification-container');
+            if (!container) {
+                return;
+            }
+
+            const typeLabel = leaveTypeLabels[request.leave_type] || request.leave_type;
+            const name = escapeHtml(request.name || '-');
+
+            const toast = document.createElement('div');
+            toast.className = 'toast-enter pointer-events-auto max-w-sm w-full bg-white rounded-lg shadow-lg border border-slate-200 border-l-4 border-l-emerald-500 p-4 flex items-start gap-3';
+            toast.innerHTML =
+                '<span class="text-lg leading-none">🔔</span>' +
+                '<div class="min-w-0 flex-1">' +
+                '<p class="text-sm font-semibold text-slate-800">Pengajuan Baru</p>' +
+                '<p class="text-sm text-slate-600">' + name + ' mengajukan ' + escapeHtml(typeLabel) + '</p>' +
+                '<p class="text-xs text-slate-400 mt-0.5">' + escapeHtml(timeAgo(request.created_at)) + '</p>' +
+                '</div>' +
+                '<button type="button" class="text-slate-400 hover:text-slate-600 shrink-0" onclick="this.parentElement.remove()">×</button>';
+
+            container.appendChild(toast);
+
+            setTimeout(function () {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(function () {
+                    toast.remove();
+                }, 400);
+            }, 5000);
+        }
+
+        function processRequests(data) {
+            const latestId = Number(data.latest_id || 0);
+
+            console.log('Live leave data:', data);
+            console.log('Latest ID:', latestId);
+            console.log('Previous ID:', latestLeaveRequestId);
+
+            if (isFirstLoad) {
+                latestLeaveRequestId = latestId;
+                isFirstLoad = false;
+                return;
+            }
+
+            if (latestId <= latestLeaveRequestId) {
+                return;
+            }
+
+            const newRequests = (data.requests || []).filter(function (request) {
+                return Number(request.id) > latestLeaveRequestId;
+            });
+
+            console.log('New leave requests:', newRequests);
+
+            if (newRequests.length === 0) {
+                latestLeaveRequestId = latestId;
+                return;
+            }
+
+            const canInsert = shouldInsertRows();
+
+            newRequests.forEach(function (request) {
+                if (canInsert) {
+                    insertRequestRow(request);
+                }
+                showLeaveNotification(request);
+            });
+
+            latestLeaveRequestId = latestId;
+        }
+
+        async function loadLiveLeaveRequests() {
+            const url = "{{ route('hr.leave-requests.live') }}";
+
+            try {
+                const response = await fetch(url, {
+                    cache: 'no-store',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load leave requests');
+                }
+
+                const data = await response.json();
+
+                updateStatistics(data);
+                processRequests(data);
+
+                const lastUpdated = document.getElementById('last-updated');
+                if (lastUpdated) {
+                    lastUpdated.textContent = 'just now';
+                }
+            } catch (error) {
+                console.error('[HR Leave Management] Gagal memuat data live, akan dicoba lagi di interval berikutnya:', error);
+            }
+        }
+
+        function startPolling() {
+            if (pollingTimer === null) {
+                pollingTimer = setInterval(loadLiveLeaveRequests, pollInterval);
+            }
+        }
+
+        function stopPolling() {
+            if (pollingTimer !== null) {
+                clearInterval(pollingTimer);
+                pollingTimer = null;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            loadLiveLeaveRequests();
+            startPolling();
+        });
+
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                stopPolling();
+            } else {
+                loadLiveLeaveRequests();
+                startPolling();
+            }
+        });
+    })();
 </script>
 @endpush

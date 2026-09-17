@@ -206,6 +206,10 @@
         });
     </script>
 
+    <!-- Global Notification Container -->
+    <div id="notification-container"
+        class="fixed top-5 right-5 z-[9999] w-80 space-y-3 pointer-events-none"></div>
+
     @stack('scripts')
 </body>
 
