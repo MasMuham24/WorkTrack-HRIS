@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin \Illuminate\Database\Eloquent\Builder
+ * @method static int count(string $columns = '*')
+ */
 class Departemen extends Model
 {
     use HasFactory;

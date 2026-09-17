@@ -36,7 +36,7 @@ class UserSeeder extends Seeder
                 'name' => 'Administrator',
                 'username' => 'admin',
                 'email' => 'admin@example.com',
-                'role' => 'admin',
+                'role' => 'admin',  
                 'phone' => '081234567890',
                 'hire_date' => '2024-01-15',
                 'status' => 'active',

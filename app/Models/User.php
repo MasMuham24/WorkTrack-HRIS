@@ -9,6 +9,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 /**
+ * @mixin \Illuminate\Database\Eloquent\Builder
+ * @method static int count(string $columns = '*')
+ * @method static \Illuminate\Database\Eloquent\Builder employees()
  * @method bool|null delete()
  */
 class User extends Authenticatable
@@ -94,5 +97,20 @@ class User extends Authenticatable
     public function isEmployee(): bool
     {
         return $this->role === 'employee';
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Scopes
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Anggota karyawan sistem: role employee dan hr.
+     * Role admin tidak termasuk.
+     */
+    public function scopeEmployees($query)
+    {
+        return $query->whereIn('role', ['employee', 'hr']);
     }
 }

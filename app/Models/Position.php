@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin \Illuminate\Database\Eloquent\Builder
+ * @method static int count(string $columns = '*')
+ */
 class Position extends Model
 {
     use HasFactory;

@@ -18,8 +18,9 @@ class EmployeeController extends Controller
         $departementId = $request->departement_id;
         $status = $request->status;
 
-        $employees = User::with(['department', 'position'])
-            ->where('role', 'employee')
+        $employees = User::query()
+            ->with(['department', 'position'])
+            ->employees()
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('employee_code', 'like', "%{$search}%")
@@ -70,7 +71,7 @@ class EmployeeController extends Controller
 
     public function edit(User $employee)
     {
-        abort_if($employee->role !== 'employee', 404);
+        abort_if(! in_array($employee->role, ['employee', 'hr']), 404);
 
         $departments = Departemen::query()->orderBy('name', 'asc')->get();
         $positions = Position::query()->orderBy('name', 'asc')->get();
@@ -83,7 +84,7 @@ class EmployeeController extends Controller
 
     public function update(UpdateEmployeeRequest $request, User $employee)
     {
-        abort_if($employee->role !== 'employee', 404);
+        abort_if(! in_array($employee->role, ['employee', 'hr']), 404);
 
         $data = [
             'employee_code' => $request->employee_code,
@@ -110,7 +111,7 @@ class EmployeeController extends Controller
 
     public function destroy(User $employee)
     {
-        abort_if($employee->role !== 'employee', 404);
+        abort_if(! in_array($employee->role, ['employee', 'hr']), 404);
 
         $employee->delete();
 
