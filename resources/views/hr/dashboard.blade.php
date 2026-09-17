@@ -72,7 +72,7 @@
             </div>
             <div class="ml-4">
                 <h3 class="text-sm font-medium text-slate-500">Ijin Menunggu</h3>
-                <p class="text-2xl font-bold text-slate-800">{{ $pendingLeaveApplicationsCount }}</p>
+                <p class="text-2xl font-bold text-slate-800">{{ $pendingLeaveRequestsCount }}</p>
             </div>
         </div>
     </div>
@@ -146,15 +146,15 @@
             <h2 class="text-lg font-semibold text-slate-800">Pengajuan Ijin Menunggu Persetujuan</h2>
         </div>
         <div class="p-6">
-            @if($pendingLeaveApplications->count() > 0)
+            @if($pendingLeaves->count() > 0)
                 <div class="space-y-4">
-                    @foreach($pendingLeaveApplications as $leave)
+                    @foreach($pendingLeaves as $leave)
                         <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-100">
                             <div>
                                 <p class="text-sm font-semibold text-slate-800">{{ $leave->user->name ?? '-' }}</p>
                                 <p class="text-xs text-slate-500">{{ ucfirst($leave->leave_type) }} ({{ \Carbon\Carbon::parse($leave->start_date)->format('d M') }} - {{ \Carbon\Carbon::parse($leave->end_date)->format('d M') }})</p>
                             </div>
-                            <form action="{{ route('hr.leave-applications.update', $leave->id) }}" method="POST" class="flex items-center gap-2">
+                            <form action="{{ route('hr.leave-requests.update', $leave->id) }}" method="POST" class="flex items-center gap-2">
                                 @csrf
                                 @method('PUT')
                                 <input type="hidden" name="status" value="approved">
@@ -162,7 +162,7 @@
                                     ACC
                                 </button>
                             </form>
-                            <form action="{{ route('hr.leave-applications.update', $leave->id) }}" method="POST" class="flex items-center gap-2">
+                            <form action="{{ route('hr.leave-requests.update', $leave->id) }}" method="POST" class="flex items-center gap-2">
                                 @csrf
                                 @method('PUT')
                                 <input type="hidden" name="status" value="rejected">

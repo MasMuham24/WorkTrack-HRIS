@@ -43,7 +43,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200">
-                        @forelse($leaveRequests as $item)
+                        @forelse($cutiRequests as $item)
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="px-3 py-3 whitespace-nowrap">
                                     <div class="flex items-center">
@@ -96,8 +96,8 @@
                     </tbody>
                 </table>
             </div>
-            @if($leaveRequests->hasPages())
-                <div class="mt-2">{{ $leaveRequests->links() }}</div>
+            @if($cutiRequests->hasPages())
+                <div class="mt-2">{{ $cutiRequests->links() }}</div>
             @endif
         </div>
 
@@ -131,7 +131,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200">
-                        @forelse($leaveApplications as $item)
+                        @forelse($izinRequests as $item)
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="px-3 py-3 whitespace-nowrap">
                                     <div class="flex items-center">
@@ -156,13 +156,13 @@
                                 <td class="px-3 py-3 whitespace-nowrap">
                                     @if($item->status === 'pending')
                                         <div class="flex items-center gap-1">
-                                            <form action="{{ route('hr.leave-applications.update', $item->id) }}" method="POST">
+                                            <form action="{{ route('hr.leave-requests.update', $item->id) }}" method="POST">
                                                 @csrf
                                                 @method('PUT')
                                                 <input type="hidden" name="status" value="approved">
                                                 <button type="submit" class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 hover:bg-emerald-200">ACC</button>
                                             </form>
-                                            <form action="{{ route('hr.leave-applications.update', $item->id) }}" method="POST">
+                                            <form action="{{ route('hr.leave-requests.update', $item->id) }}" method="POST">
                                                 @csrf
                                                 @method('PUT')
                                                 <input type="hidden" name="status" value="rejected">
@@ -170,18 +170,9 @@
                                             </form>
                                         </div>
                                     @else
-                                        <div class="flex items-center gap-1">
-                                            <a href="{{ route('hr.leave-applications.show', $item->id) }}" class="text-slate-400 hover:text-indigo-600">
-                                                <i data-feather="eye" class="w-4 h-4"></i>
-                                            </a>
-                                            <form action="{{ route('hr.leave-applications.destroy', $item->id) }}" method="POST" onsubmit="return confirm('Yakin hapus?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-slate-400 hover:text-red-600">
-                                                    <i data-feather="trash-2" class="w-4 h-4"></i>
-                                                </button>
-                                            </form>
-                                        </div>
+                                        <a href="{{ route('hr.leave-requests.show', $item->id) }}" class="text-slate-400 hover:text-indigo-600">
+                                            <i data-feather="eye" class="w-4 h-4"></i>
+                                        </a>
                                     @endif
                                 </td>
                             </tr>
@@ -193,8 +184,8 @@
                     </tbody>
                 </table>
             </div>
-            @if($leaveApplications->hasPages())
-                <div class="mt-2">{{ $leaveApplications->links() }}</div>
+            @if($izinRequests->hasPages())
+                <div class="mt-2">{{ $izinRequests->links() }}</div>
             @endif
         </div>
     </div>

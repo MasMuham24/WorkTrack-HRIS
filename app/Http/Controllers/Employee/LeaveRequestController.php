@@ -12,17 +12,11 @@ class LeaveRequestController extends Controller
 {
     public function index(): View
     {
-        $leaveRequests = LeaveRequest::query()
-            ->where('user_id', Auth::id())
-            ->latest()
-            ->paginate(10);
-
+        $leaveRequests = LeaveRequest::query()->where('user_id', Auth::id())->latest()->paginate(10);
         $allLeaveRequests = LeaveRequest::query()->where('user_id', Auth::id())->get();
-
         $totalPending = $allLeaveRequests->where('status', 'pending')->count();
         $totalApproved = $allLeaveRequests->where('status', 'approved')->count();
         $totalRejected = $allLeaveRequests->where('status', 'rejected')->count();
-
         return view('employee.leave-requests.index', compact('leaveRequests', 'totalPending', 'totalApproved', 'totalRejected'));
     }
 
@@ -48,10 +42,6 @@ class LeaveRequestController extends Controller
             'reason' => $validated['reason'],
             'status' => 'pending',
         ]);
-
-        return redirect()
-            ->route('employee.leave-requests.index')
-            ->with('success', 'Leave request submitted successfully.');
+        return redirect()->route('employee.leave-requests.index')->with('success', 'Leave request submitted successfully.');
     }
-
 }
