@@ -3,53 +3,80 @@
 namespace App\Http\Controllers\Report;
 
 use App\Http\Controllers\Controller;
-use App\Models\Attendance;
-use App\Models\User;
+use App\Services\AttendanceExportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceReportController extends Controller
 {
+    public function __construct(
+        protected AttendanceExportService $exportService
+    ) {}
+
+    /**
+     * Display monthly attendance report summary.
+     */
     public function index(Request $request): View
     {
-        $month = $request->input('month', Carbon::now()->month);
-        $year = $request->input('year', Carbon::now()->year);
+        [$month, $year] = $this->resolvePeriod($request);
 
-        $employees = User::where('role', 'employee')->get();
+        $summary = $this->exportService->getMonthlySummary($month, $year);
 
-        $attendances = Attendance::selectRaw("
-                user_id,
-                COUNT(CASE WHEN status = 'hadir' THEN 1 END) as present,
-                COUNT(CASE WHEN status = 'terlambat' THEN 1 END) as late,
-                COUNT(CASE WHEN status = 'cuti' THEN 1 END) as cuti,
-                COUNT(CASE WHEN status = 'sakit' THEN 1 END) as sick,
-                COUNT(CASE WHEN status = 'alpha' THEN 1 END) as absent
-            ")
-            ->whereYear('attendance_date', $year)
-            ->whereMonth('attendance_date', $month)
-            ->groupBy('user_id')
-            ->get()
-            ->keyBy('user_id');
-
-        $summary = $employees->map(function ($employee) use ($attendances) {
-            $data = $attendances->get($employee->id);
-            return (object) [
-                'name' => $employee->name,
-                'present' => $data->present ?? 0,
-                'late' => $data->late ?? 0,
-                'cuti' => $data->cuti ?? 0,
-                'sick' => $data->sick ?? 0,
-                'absent' => $data->absent ?? 0,
-            ];
-        });
-
-        $months = collect(range(1, 12))->mapWithKeys(fn($m) => [
+        $months = collect(range(1, 12))->mapWithKeys(fn ($m) => [
             $m => Carbon::create()->month($m)->translatedFormat('F'),
         ]);
 
         $years = range(Carbon::now()->year - 2, Carbon::now()->year + 1);
 
         return view('reports.attendance', compact('summary', 'month', 'year', 'months', 'years'));
+    }
+
+    /**
+     * Export monthly attendance summary to Excel (.xlsx).
+     */
+    public function exportExcel(Request $request): BinaryFileResponse
+    {
+        [$month, $year] = $this->resolvePeriod($request);
+
+        return $this->exportService->exportExcel($month, $year);
+    }
+
+    /**
+     * Export monthly attendance summary to CSV (.csv).
+     */
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        [$month, $year] = $this->resolvePeriod($request);
+
+        return $this->exportService->exportCsv($month, $year);
+    }
+
+    /**
+     * Resolve and validate month and year from request.
+     *
+     * @return array{0: int, 1: int}
+     */
+    protected function resolvePeriod(Request $request): array
+    {
+        $rawMonth = $request->input('month');
+        $rawYear = $request->input('year');
+
+        $now = Carbon::now();
+
+        $month = is_numeric($rawMonth) ? (int) $rawMonth : (int) $now->month;
+        $year = is_numeric($rawYear) ? (int) $rawYear : (int) $now->year;
+
+        if ($month < 1 || $month > 12) {
+            $month = (int) $now->month;
+        }
+
+        if ($year < 2000 || $year > 2100) {
+            $year = (int) $now->year;
+        }
+
+        return [$month, $year];
     }
 }
