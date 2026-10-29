@@ -80,13 +80,17 @@ class AttendanceService
         }
 
         $now = Carbon::now();
-        $officeTime = Carbon::today()->setTime(8, 0);
+        $scheduledCheckIn = Carbon::today()->setTimeFromTimeString(
+            $nearestOffice->check_in_time
+        );
+        $toleranceEnd = $scheduledCheckIn->copy()->addMinutes(5);
+        $lateSeconds = $now->getTimestamp() - $scheduledCheckIn->getTimestamp();
 
         $lateMinutes = 0;
         $status = 'hadir';
 
-        if ($now->greaterThan($officeTime)) {
-            $lateMinutes = $officeTime->diffInMinutes($now);
+        if ($now->greaterThan($toleranceEnd)) {
+            $lateMinutes = max(0, intdiv($lateSeconds, 60));
             $status = 'terlambat';
         }
 
@@ -102,6 +106,17 @@ class AttendanceService
             'accuracy' => $accuracy,
             'distance' => round($distance, 2),
         ]);
+    }
+
+    public function getScheduledCheckOutAt(Attendance $attendance): ?Carbon
+    {
+        if (! $attendance->office) {
+            return null;
+        }
+
+        return Carbon::today()->setTimeFromTimeString(
+            $attendance->office->check_out_time
+        );
     }
 
     public function checkOut(float $latitude, float $longitude, ?float $accuracy = null): Attendance
@@ -120,8 +135,26 @@ class AttendanceService
             );
         }
 
+        $scheduledCheckOut = $this->getScheduledCheckOutAt($attendance);
+
+        if (! $scheduledCheckOut) {
+            throw new RuntimeException(
+                'Jadwal pulang kantor tidak ditemukan. Hubungi administrator.'
+            );
+        }
+
+        $now = Carbon::now();
+
+        if ($now->lessThan($scheduledCheckOut)) {
+            throw new RuntimeException(
+                'Check out belum dapat dilakukan. Jam pulang kantor pukul '.
+                $scheduledCheckOut->format('H:i').
+                ' WIB.'
+            );
+        }
+
         $attendance->update([
-            'check_out' => Carbon::now()->format('H:i:s'),
+            'check_out' => $now->format('H:i:s'),
         ]);
 
         return $attendance->fresh('office');

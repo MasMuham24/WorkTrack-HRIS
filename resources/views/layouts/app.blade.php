@@ -47,7 +47,22 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+        .toast-enter {
+            animation: toast-slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .toast-exit {
+            animation: toast-fade-out 0.35s ease-in forwards;
+        }
+        @keyframes toast-slide-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes toast-fade-out {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
     </style>
+    @stack('styles')
 </head>
 
 <body class="h-full text-slate-800 antialiased selection:bg-indigo-500 selection:text-white"
@@ -184,15 +199,36 @@
                 </div>
 
                 <div class="flex items-center space-x-3 shrink-0">
-                    <!-- Notifications (HR or Admin) -->
-                    <button id="notification-bell" type="button"
-                        class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50 rounded-xl transition-colors relative focus:outline-none"
-                        aria-label="Notifikasi" title="Notifikasi">
-                        <i data-feather="bell" class="w-5 h-5"></i>
-                        <span id="notification-badge"
-                            class="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold items-center justify-center ring-2 ring-white"
-                            style="display: none;"></span>
-                    </button>
+                    <!-- Notifications -->
+                    <div class="relative" id="notification-wrapper">
+                        <button id="notification-bell" type="button"
+                            class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50 rounded-xl transition-colors relative focus:outline-none"
+                            aria-label="Notifikasi" title="Notifikasi">
+                            <i data-feather="bell" class="w-5 h-5"></i>
+                            <span id="notification-badge"
+                                class="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold items-center justify-center ring-2 ring-white"
+                                style="display: none;"></span>
+                        </button>
+
+                        <!-- Notification Dropdown Panel (for Employee / General) -->
+                        <div id="notification-panel"
+                            class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 ring-1 ring-black/5 z-50 overflow-hidden">
+                            <div class="p-3.5 px-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xs font-bold text-slate-800">Notifikasi</span>
+                                    <span id="notification-unread-pill" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700" style="display: none;">0 baru</span>
+                                </div>
+                                <button type="button" id="mark-all-read-btn" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
+                                    Tandai semua dibaca
+                                </button>
+                            </div>
+                            <div id="notification-list" class="max-h-[360px] overflow-y-auto divide-y divide-slate-100">
+                                <div class="p-6 text-center text-xs text-slate-400">
+                                    Memuat notifikasi...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Profile Dropdown -->
                     <div x-data="{ dropdownOpen: false }" class="relative">
@@ -303,6 +339,610 @@
     <!-- Global Notification Container for Toasts -->
     <div id="notification-container"
         class="fixed top-20 right-4 sm:right-6 z-[9999] w-80 max-w-[calc(100vw-2rem)] space-y-3 pointer-events-none"></div>
+
+    @if(Auth::check() && Auth::user()->isEmployee())
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const bell = document.getElementById('notification-bell');
+            const panel = document.getElementById('notification-panel');
+            const badge = document.getElementById('notification-badge');
+            const unreadPill = document.getElementById('notification-unread-pill');
+            const list = document.getElementById('notification-list');
+            const markAllBtn = document.getElementById('mark-all-read-btn');
+            const container = document.getElementById('notification-container');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            if (!bell || !panel) return;
+
+            let notifications = [];
+            const knownNotificationIds = new Set();
+            let isFirstLoad = true;
+            let pollingTimer = null;
+            const pollInterval = 8000;
+
+            function escapeHtml(val) {
+                return String(val ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function timeAgo(dateString) {
+                if (!dateString) return '';
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return '';
+                const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
+                if (minutes < 1) return 'baru saja';
+                if (minutes < 60) return minutes + ' mnt lalu';
+                const hours = Math.floor(minutes / 60);
+                if (hours < 24) return hours + ' jam lalu';
+                return Math.floor(hours / 24) + ' hari lalu';
+            }
+
+            function renderNotifications() {
+                if (!list) return;
+                if (notifications.length === 0) {
+                    list.innerHTML = `
+                        <div class="p-8 text-center">
+                            <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                                <i data-feather="bell-off" class="w-5 h-5"></i>
+                            </div>
+                            <p class="text-xs font-semibold text-slate-600">Belum ada notifikasi</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Notifikasi status permohonan izin akan muncul di sini.</p>
+                        </div>
+                    `;
+                    if (window.feather) feather.replace();
+                    return;
+                }
+
+                list.innerHTML = notifications.map(function (n) {
+                    const isApproved = n.status === 'approved';
+                    const iconBg = isApproved ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700';
+                    const iconName = isApproved ? 'check-circle' : 'x-circle';
+                    const bgClass = !n.read ? 'bg-indigo-50/50' : 'hover:bg-slate-50';
+
+                    return `
+                        <div class="notification-item p-3.5 px-4 cursor-pointer flex items-start gap-3 transition-colors ${bgClass}" data-id="${n.id}" data-url="${n.url}">
+                            <div class="w-8 h-8 rounded-xl ${iconBg} flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                                <i data-feather="${iconName}" class="w-4 h-4"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center justify-between gap-2">
+                                    <p class="text-xs font-bold text-slate-800 truncate">${escapeHtml(n.title)}</p>
+                                    <span class="text-[10px] text-slate-400 shrink-0 font-medium">${timeAgo(n.created_at)}</span>
+                                </div>
+                                <p class="text-xs text-slate-600 mt-0.5 leading-snug">${escapeHtml(n.message)}</p>
+                                ${n.start_date_formatted ? `<p class="text-[10px] text-slate-400 mt-1">Rentang: ${escapeHtml(n.start_date_formatted)} s/d ${escapeHtml(n.end_date_formatted || n.start_date_formatted)}</p>` : ''}
+                            </div>
+                            ${!n.read ? '<span class="w-2 h-2 rounded-full bg-indigo-600 mt-2 shrink-0"></span>' : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                if (window.feather) feather.replace();
+            }
+
+            function showStatusToast(n) {
+                if (!container) return;
+
+                const isApproved = n.status === 'approved';
+                const borderClass = isApproved ? 'border-l-emerald-500' : 'border-l-rose-500';
+                const iconBg = isApproved ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600';
+                const iconName = isApproved ? 'check-circle' : 'x-circle';
+                const titleColor = isApproved ? 'text-emerald-700' : 'text-rose-700';
+                const linkColor = isApproved ? 'text-emerald-600' : 'text-rose-600';
+
+                const toast = document.createElement('div');
+                toast.className = 'toast-enter pointer-events-auto max-w-sm w-full bg-white rounded-2xl shadow-xl border border-slate-200 border-l-4 ' + borderClass + ' p-4 flex items-start gap-3 cursor-pointer hover:bg-slate-50 transition-colors';
+                toast.innerHTML =
+                    '<div class="w-8 h-8 rounded-xl ' + iconBg + ' flex items-center justify-center shrink-0 shadow-xs">' +
+                    '<i data-feather="' + iconName + '" class="w-4 h-4"></i>' +
+                    '</div>' +
+                    '<div class="min-w-0 flex-1">' +
+                    '<div class="flex items-center justify-between gap-1">' +
+                    '<p class="text-xs font-bold ' + titleColor + '">' + escapeHtml(n.title) + '</p>' +
+                    '<span class="text-[10px] text-slate-400">' + escapeHtml(timeAgo(n.created_at)) + '</span>' +
+                    '</div>' +
+                    '<p class="text-xs text-slate-600 mt-0.5 leading-snug">' + escapeHtml(n.message) + '</p>' +
+                    '<p class="text-[10px] ' + linkColor + ' font-semibold mt-1">Klik untuk lihat detail &rarr;</p>' +
+                    '</div>' +
+                    '<button type="button" class="text-slate-400 hover:text-slate-600 shrink-0 text-base p-1 leading-none" title="Tutup">×</button>';
+
+                toast.addEventListener('click', async function (e) {
+                    if (e.target.closest('button')) {
+                        e.stopPropagation();
+                        toast.remove();
+                        return;
+                    }
+                    toast.remove();
+                    try {
+                        await fetch("{{ url('employee/notifications') }}/" + n.id + "/read", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                    } catch (err) {}
+                    if (n.url) {
+                        window.location.href = n.url;
+                    }
+                });
+
+                container.appendChild(toast);
+                if (window.feather) feather.replace();
+
+                setTimeout(function () {
+                    toast.classList.remove('toast-enter');
+                    toast.classList.add('toast-exit');
+                    setTimeout(function () {
+                        toast.remove();
+                    }, 400);
+                }, 6000);
+            }
+
+            async function loadNotifications() {
+                try {
+                    const res = await fetch("{{ route('employee.notifications.index') }}", {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    const newNotifications = data.notifications || [];
+                    const unread = data.unread_count || 0;
+
+                    if (isFirstLoad) {
+                        newNotifications.forEach(function (n) {
+                            knownNotificationIds.add(n.id);
+                        });
+                        isFirstLoad = false;
+                    } else {
+                        newNotifications.forEach(function (n) {
+                            if (!n.read && !knownNotificationIds.has(n.id)) {
+                                knownNotificationIds.add(n.id);
+                                showStatusToast(n);
+                            }
+                        });
+                    }
+
+                    notifications = newNotifications;
+
+                    if (badge) {
+                        badge.textContent = unread > 99 ? '99+' : String(unread || '');
+                        badge.style.display = unread > 0 ? 'flex' : 'none';
+                    }
+                    if (unreadPill) {
+                        unreadPill.textContent = unread + ' baru';
+                        unreadPill.style.display = unread > 0 ? 'inline-block' : 'none';
+                    }
+
+                    if (!panel.classList.contains('hidden')) {
+                        renderNotifications();
+                    }
+
+                    window.dispatchEvent(new CustomEvent('employee-live-data', { detail: data }));
+                } catch (e) {}
+            }
+
+            function startPolling() {
+                if (pollingTimer === null) {
+                    pollingTimer = setInterval(loadNotifications, pollInterval);
+                }
+            }
+
+            function stopPolling() {
+                if (pollingTimer !== null) {
+                    clearInterval(pollingTimer);
+                    pollingTimer = null;
+                }
+            }
+
+            bell.addEventListener('click', function (e) {
+                e.stopPropagation();
+                panel.classList.toggle('hidden');
+                if (!panel.classList.contains('hidden')) {
+                    renderNotifications();
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!panel.contains(e.target) && !bell.contains(e.target)) {
+                    panel.classList.add('hidden');
+                }
+            });
+
+            list.addEventListener('click', async function (e) {
+                const item = e.target.closest('.notification-item');
+                if (!item) return;
+                const id = item.dataset.id;
+                const url = item.dataset.url;
+
+                try {
+                    await fetch("{{ url('employee/notifications') }}/" + id + "/read", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                } catch (err) {}
+
+                if (url) {
+                    window.location.href = url;
+                }
+            });
+
+            if (markAllBtn) {
+                markAllBtn.addEventListener('click', async function () {
+                    try {
+                        await fetch("{{ route('employee.notifications.mark-all-read') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        loadNotifications();
+                    } catch (err) {}
+                });
+            }
+
+            renderNotifications();
+            loadNotifications();
+            startPolling();
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) {
+                    stopPolling();
+                } else {
+                    loadNotifications();
+                    startPolling();
+                }
+            });
+        });
+    </script>
+    @elseif(Auth::check() && Auth::user()->isHR())
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const bell = document.getElementById('notification-bell');
+            const panel = document.getElementById('notification-panel');
+            const badge = document.getElementById('notification-badge');
+            const unreadPill = document.getElementById('notification-unread-pill');
+            const list = document.getElementById('notification-list');
+            const markAllBtn = document.getElementById('mark-all-read-btn');
+            const container = document.getElementById('notification-container');
+
+            if (!bell || !panel || !list) return;
+
+            const NOTIFICATION_KEY = 'hr_leave_notifications';
+            const MAX_NOTIFICATIONS = 50;
+            const liveUrl = "{{ route('hr.leave-requests.live') }}";
+            const detailUrlTemplate = "{{ route('hr.leave-requests.show', ':ID') }}";
+            let latestLeaveRequestId = null;
+            let isFirstLoad = true;
+            let pollingTimer = null;
+            const pollInterval = 10000;
+
+            const leaveTypeLabels = {
+                cuti: 'Cuti Tahunan',
+                sakit: 'Izin Sakit',
+                penting: 'Izin Penting',
+                lainnya: 'Izin Lainnya'
+            };
+
+            function escapeHtml(val) {
+                return String(val ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function timeAgo(dateString) {
+                if (!dateString) return '';
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return '';
+                const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
+                if (minutes < 1) return 'baru saja';
+                if (minutes < 60) return minutes + ' mnt lalu';
+                const hours = Math.floor(minutes / 60);
+                if (hours < 24) return hours + ' jam lalu';
+                return Math.floor(hours / 24) + ' hari lalu';
+            }
+
+            function getNotifications() {
+                try {
+                    const parsed = JSON.parse(localStorage.getItem(NOTIFICATION_KEY));
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function saveNotifications(items) {
+                try {
+                    localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(items));
+                } catch (e) {}
+            }
+
+            function getUnreadCount() {
+                return getNotifications().filter(n => !n.read).length;
+            }
+
+            function updateBadge() {
+                const count = getUnreadCount();
+                if (badge) {
+                    badge.textContent = count > 99 ? '99+' : String(count || '');
+                    badge.style.display = count > 0 ? 'flex' : 'none';
+                }
+                if (unreadPill) {
+                    unreadPill.textContent = count + ' baru';
+                    unreadPill.style.display = count > 0 ? 'inline-block' : 'none';
+                }
+            }
+
+            function renderNotifications() {
+                const notifications = getNotifications();
+                if (!list) return;
+
+                if (notifications.length === 0) {
+                    list.innerHTML = `
+                        <div class="p-8 text-center">
+                            <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                                <i data-feather="bell-off" class="w-5 h-5"></i>
+                            </div>
+                            <p class="text-xs font-semibold text-slate-600">Belum ada notifikasi</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Pengajuan cuti dan izin dari karyawan akan muncul di sini.</p>
+                        </div>
+                    `;
+                    if (window.feather) feather.replace();
+                    return;
+                }
+
+                list.innerHTML = notifications.map(function (n) {
+                    const unread = !n.read;
+                    const typeLabel = leaveTypeLabels[n.leave_type] || n.leave_type || 'Pengajuan';
+                    const employee = escapeHtml(n.employee || 'Karyawan');
+                    const reason = escapeHtml(n.reason || '');
+
+                    let iconBg = 'bg-amber-100 text-amber-700';
+                    let iconName = 'clock';
+                    if (n.leave_type === 'cuti') {
+                        iconBg = 'bg-indigo-100 text-indigo-700';
+                        iconName = 'calendar';
+                    } else if (n.leave_type === 'sakit') {
+                        iconBg = 'bg-rose-100 text-rose-700';
+                        iconName = 'activity';
+                    }
+
+                    return `
+                        <div class="notification-item p-3.5 sm:px-4 hover:bg-slate-50 cursor-pointer flex items-start gap-3 transition-colors ${unread ? 'bg-indigo-50/50' : ''}" data-id="${n.id}">
+                            <div class="w-8 h-8 rounded-xl ${iconBg} flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                                <i data-feather="${iconName}" class="w-4 h-4"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center justify-between gap-2">
+                                    <p class="text-xs font-bold text-slate-800 truncate">${employee}</p>
+                                    <span class="text-[10px] text-slate-400 shrink-0 font-medium">${timeAgo(n.created_at)}</span>
+                                </div>
+                                <p class="text-xs text-slate-600 mt-0.5 leading-snug">Mengajukan ${escapeHtml(typeLabel)}</p>
+                                ${reason ? `<p class="text-[11px] text-slate-400 mt-0.5 truncate">${reason}</p>` : ''}
+                                ${n.start_date ? `<p class="text-[10px] text-slate-400 mt-1">Rentang: ${escapeHtml(n.start_date)} s/d ${escapeHtml(n.end_date || n.start_date)}</p>` : ''}
+                            </div>
+                            ${unread ? '<span class="w-2 h-2 rounded-full bg-indigo-600 mt-2 shrink-0"></span>' : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                if (window.feather) feather.replace();
+            }
+
+            function openNotificationDetail(id) {
+                if (!id) return;
+                const items = getNotifications().map(function (n) {
+                    return Number(n.id) === Number(id) ? { ...n, read: true } : n;
+                });
+                saveNotifications(items);
+                updateBadge();
+                if (panel) panel.classList.add('hidden');
+                window.location.href = detailUrlTemplate.replace(':ID', id);
+            }
+
+            window.openHRNotificationDetail = openNotificationDetail;
+
+            function showLeaveToast(request) {
+                if (!container) return;
+
+                const typeLabel = leaveTypeLabels[request.leave_type] || request.leave_type || 'Cuti/Izin';
+                const name = escapeHtml(request.name || 'Karyawan');
+
+                const toast = document.createElement('div');
+                toast.className = 'toast-enter pointer-events-auto max-w-sm w-full bg-white rounded-2xl shadow-xl border border-slate-200 border-l-4 border-l-emerald-500 p-4 flex items-start gap-3 cursor-pointer hover:bg-slate-50 transition-colors';
+                toast.innerHTML =
+                    '<div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-xs">' +
+                    '<i data-feather="bell" class="w-4 h-4"></i>' +
+                    '</div>' +
+                    '<div class="min-w-0 flex-1">' +
+                    '<div class="flex items-center justify-between gap-1">' +
+                    '<p class="text-xs font-bold text-slate-800">Pengajuan Baru</p>' +
+                    '<span class="text-[10px] text-slate-400">' + escapeHtml(timeAgo(request.created_at)) + '</span>' +
+                    '</div>' +
+                    '<p class="text-xs text-slate-600 mt-0.5">' + name + ' mengajukan ' + escapeHtml(typeLabel) + '</p>' +
+                    '<p class="text-[10px] text-indigo-600 font-semibold mt-1">Klik untuk lihat detail &rarr;</p>' +
+                    '</div>' +
+                    '<button type="button" class="text-slate-400 hover:text-slate-600 shrink-0 text-base p-1 leading-none" title="Tutup">×</button>';
+
+                toast.addEventListener('click', function (e) {
+                    if (e.target.closest('button')) {
+                        e.stopPropagation();
+                        toast.remove();
+                        return;
+                    }
+                    toast.remove();
+                    openNotificationDetail(request.id);
+                });
+
+                container.appendChild(toast);
+                if (window.feather) feather.replace();
+
+                setTimeout(function () {
+                    toast.classList.remove('toast-enter');
+                    toast.classList.add('toast-exit');
+                    setTimeout(function () {
+                        toast.remove();
+                    }, 400);
+                }, 6000);
+            }
+
+            function storeNotification(request) {
+                const items = getNotifications();
+                const exists = items.some(n => Number(n.id) === Number(request.id));
+                if (exists) return false;
+
+                items.unshift({
+                    id: request.id,
+                    employee: request.name,
+                    leave_type: request.leave_type,
+                    start_date: request.start_date,
+                    end_date: request.end_date,
+                    reason: request.reason,
+                    created_at: request.created_at,
+                    read: false
+                });
+
+                if (items.length > MAX_NOTIFICATIONS) {
+                    items.splice(MAX_NOTIFICATIONS);
+                }
+
+                saveNotifications(items);
+                return true;
+            }
+
+            function processRequests(data) {
+                const latestId = Number(data.latest_id || 0);
+
+                if (isFirstLoad) {
+                    latestLeaveRequestId = latestId;
+                    isFirstLoad = false;
+
+                    const currentItems = getNotifications();
+                    if (currentItems.length === 0 && Array.isArray(data.requests) && data.requests.length > 0) {
+                        data.requests.forEach(function (r) {
+                            storeNotification(r);
+                        });
+                        updateBadge();
+                        renderNotifications();
+                    }
+                    return;
+                }
+
+                if (latestId <= latestLeaveRequestId) return;
+
+                const newRequests = (data.requests || []).filter(r => Number(r.id) > latestLeaveRequestId);
+                if (newRequests.length === 0) {
+                    latestLeaveRequestId = latestId;
+                    return;
+                }
+
+                newRequests.forEach(function (request) {
+                    if (storeNotification(request)) {
+                        showLeaveToast(request);
+                    }
+                });
+
+                updateBadge();
+                if (!panel.classList.contains('hidden')) {
+                    renderNotifications();
+                }
+
+                latestLeaveRequestId = latestId;
+            }
+
+            async function loadLiveRequests() {
+                try {
+                    const response = await fetch(liveUrl, {
+                        cache: 'no-store',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    if (!response.ok) return;
+                    const data = await response.json();
+
+                    processRequests(data);
+
+                    window.dispatchEvent(new CustomEvent('hr-live-data', { detail: data }));
+                } catch (e) {}
+            }
+
+            function startPolling() {
+                if (pollingTimer === null) {
+                    pollingTimer = setInterval(loadLiveRequests, pollInterval);
+                }
+            }
+
+            function stopPolling() {
+                if (pollingTimer !== null) {
+                    clearInterval(pollingTimer);
+                    pollingTimer = null;
+                }
+            }
+
+            bell.addEventListener('click', function (e) {
+                e.stopPropagation();
+                panel.classList.toggle('hidden');
+                if (!panel.classList.contains('hidden')) {
+                    renderNotifications();
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!panel.contains(e.target) && !bell.contains(e.target)) {
+                    panel.classList.add('hidden');
+                }
+            });
+
+            list.addEventListener('click', function (e) {
+                const item = e.target.closest('.notification-item');
+                if (!item) return;
+                const id = item.dataset.id;
+                if (id) {
+                    openNotificationDetail(id);
+                }
+            });
+
+            if (markAllBtn) {
+                markAllBtn.addEventListener('click', function () {
+                    const items = getNotifications().map(n => ({ ...n, read: true }));
+                    saveNotifications(items);
+                    updateBadge();
+                    renderNotifications();
+                });
+            }
+
+            updateBadge();
+            renderNotifications();
+            loadLiveRequests();
+            startPolling();
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) {
+                    stopPolling();
+                } else {
+                    loadLiveRequests();
+                    startPolling();
+                }
+            });
+        });
+    </script>
+    @endif
 
     @stack('scripts')
 </body>

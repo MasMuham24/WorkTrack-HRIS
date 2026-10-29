@@ -4,9 +4,11 @@ namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
+use App\Notifications\LeaveRequestStatusUpdated;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class LeaveRequestController extends Controller
@@ -34,6 +36,7 @@ class LeaveRequestController extends Controller
     public function show(string $id): View
     {
         $leaveRequest = LeaveRequest::with(['user', 'approver'])->findOrFail($id);
+
         return view('hr.leave-requests.show', compact('leaveRequest'));
     }
 
@@ -84,7 +87,7 @@ class LeaveRequestController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $id): RedirectResponse
+    public function update(Request $request, string $id): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'status' => ['required', 'in:approved,rejected'],
@@ -92,14 +95,42 @@ class LeaveRequestController extends Controller
 
         $leaveRequest = LeaveRequest::findOrFail($id);
 
-        $leaveRequest->update([
-            'status' => $validated['status'],
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
-        ]);
+        if ($leaveRequest->user_id === auth()->id()) {
+            abort(403, 'Anda tidak dapat menyetujui pengajuan Anda sendiri.');
+        }
+
+        $previousStatus = $leaveRequest->status;
+
+        DB::transaction(function () use ($leaveRequest, $validated, $previousStatus) {
+            $leaveRequest->update([
+                'status' => $validated['status'],
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+
+            // Hindari notifikasi ganda jika status tidak berubah
+            if ($previousStatus !== $validated['status']) {
+                $leaveRequest->loadMissing(['user', 'approver']);
+                if ($leaveRequest->user) {
+                    $leaveRequest->user->notify(new LeaveRequestStatusUpdated($leaveRequest));
+                }
+            }
+        });
+
+        $typeLabel = LeaveRequestStatusUpdated::getLeaveTypeLabel($leaveRequest->leave_type);
+        $statusLabel = $validated['status'] === 'approved' ? 'disetujui' : 'ditolak';
+        $message = "Pengajuan {$typeLabel} {$statusLabel}.";
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'status' => $validated['status'],
+            ]);
+        }
 
         return redirect()
-            ->route('hr.leave-requests.index')
-            ->with('success', 'Pengajuan cuti ' . ($validated['status'] === 'approved' ? 'disetujui' : 'ditolak') . '.');
+            ->back()
+            ->with('success', $message);
     }
 }

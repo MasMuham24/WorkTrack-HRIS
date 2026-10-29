@@ -34,7 +34,7 @@
         <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div class="min-w-0">
                 <p class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider truncate">Pending</p>
-                <p class="text-xl sm:text-2xl font-extrabold text-amber-600 mt-0.5">{{ $totalPending }}</p>
+                <p class="text-xl sm:text-2xl font-extrabold text-amber-600 mt-0.5" id="stat-pending">{{ $totalPending }}</p>
             </div>
             <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
                 <i data-feather="clock" class="w-5 h-5"></i>
@@ -44,7 +44,7 @@
         <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div class="min-w-0">
                 <p class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider truncate">Disetujui</p>
-                <p class="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">{{ $totalApproved }}</p>
+                <p class="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5" id="stat-approved">{{ $totalApproved }}</p>
             </div>
             <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                 <i data-feather="check-circle" class="w-5 h-5"></i>
@@ -54,7 +54,7 @@
         <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div class="min-w-0">
                 <p class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider truncate">Ditolak</p>
-                <p class="text-xl sm:text-2xl font-extrabold text-rose-600 mt-0.5">{{ $totalRejected }}</p>
+                <p class="text-xl sm:text-2xl font-extrabold text-rose-600 mt-0.5" id="stat-rejected">{{ $totalRejected }}</p>
             </div>
             <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
                 <i data-feather="x-circle" class="w-5 h-5"></i>
@@ -74,6 +74,7 @@
                         <th class="px-5 py-3.5">Durasi</th>
                         <th class="px-5 py-3.5">Keterangan</th>
                         <th class="px-5 py-3.5">Status</th>
+                        <th class="px-5 py-3.5 text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-sm">
@@ -83,7 +84,7 @@
                             $end = \Carbon\Carbon::parse($req->end_date);
                             $duration = $start->diffInDays($end) + 1;
                         @endphp
-                        <tr class="hover:bg-slate-50/70 transition-colors">
+                        <tr class="hover:bg-slate-50/70 transition-colors" id="leave-row-{{ $req->id }}">
                             <td class="px-5 py-3.5 whitespace-nowrap text-slate-800 font-medium text-xs sm:text-sm">
                                 {{ $req->created_at->translatedFormat('d M Y, H:i') }}
                             </td>
@@ -115,7 +116,7 @@
                             <td class="px-5 py-3.5 text-slate-600 max-w-xs truncate text-xs sm:text-sm">
                                 {{ $req->reason }}
                             </td>
-                            <td class="px-5 py-3.5 whitespace-nowrap">
+                            <td class="px-5 py-3.5 whitespace-nowrap" id="status-cell-{{ $req->id }}">
                                 @if($req->status === 'pending')
                                     <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                                         <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>
@@ -133,10 +134,16 @@
                                     </span>
                                 @endif
                             </td>
+                            <td class="px-5 py-3.5 whitespace-nowrap text-right">
+                                <a href="{{ route('employee.leave-requests.show', $req->id) }}" class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg px-2.5 py-1.5 transition-colors" title="Lihat Detail">
+                                    <i data-feather="eye" class="w-3.5 h-3.5 mr-1"></i>
+                                    Detail
+                                </a>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-slate-400 text-sm">
+                            <td colspan="7" class="px-6 py-12 text-center text-slate-400 text-sm">
                                 <div class="flex flex-col items-center justify-center">
                                     <i data-feather="inbox" class="w-8 h-8 text-slate-300 mb-2"></i>
                                     <p class="font-medium text-slate-500">Belum ada riwayat pengajuan cuti atau izin.</p>
@@ -156,3 +163,63 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        window.addEventListener('employee-live-data', function (event) {
+            const data = event.detail;
+            if (!data) return;
+
+            if (data.stats) {
+                const statPending = document.getElementById('stat-pending');
+                const statApproved = document.getElementById('stat-approved');
+                const statRejected = document.getElementById('stat-rejected');
+
+                if (statPending && statPending.textContent !== String(data.stats.total_pending)) {
+                    statPending.textContent = data.stats.total_pending;
+                }
+                if (statApproved && statApproved.textContent !== String(data.stats.total_approved)) {
+                    statApproved.textContent = data.stats.total_approved;
+                }
+                if (statRejected && statRejected.textContent !== String(data.stats.total_rejected)) {
+                    statRejected.textContent = data.stats.total_rejected;
+                }
+            }
+
+            if (Array.isArray(data.requests)) {
+                data.requests.forEach(function (req) {
+                    const cell = document.getElementById('status-cell-' + req.id);
+                    if (!cell) return;
+
+                    if (req.status === 'approved' && !cell.querySelector('.bg-emerald-50')) {
+                        cell.innerHTML = `
+                            <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                                Disetujui
+                            </span>
+                        `;
+                        const row = document.getElementById('leave-row-' + req.id);
+                        if (row) {
+                            row.classList.add('bg-emerald-50/50');
+                            setTimeout(() => row.classList.remove('bg-emerald-50/50'), 4000);
+                        }
+                    } else if (req.status === 'rejected' && !cell.querySelector('.bg-rose-50')) {
+                        cell.innerHTML = `
+                            <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span>
+                                Ditolak
+                            </span>
+                        `;
+                        const row = document.getElementById('leave-row-' + req.id);
+                        if (row) {
+                            row.classList.add('bg-rose-50/50');
+                            setTimeout(() => row.classList.remove('bg-rose-50/50'), 4000);
+                        }
+                    }
+                });
+            }
+        });
+    });
+</script>
+@endpush

@@ -17,10 +17,13 @@ class AttendanceController extends Controller
         $todayAttendance = $this->attendanceService->getTodayAttendance();
         $attendances = $this->attendanceService->getAttendanceHistory();
         $offices = $this->attendanceService->getOffices();
+        $scheduledCheckOut = $todayAttendance
+            ? $this->attendanceService->getScheduledCheckOutAt($todayAttendance)
+            : null;
 
         return view(
             'employee.attendance.index',
-            compact('todayAttendance', 'attendances', 'offices')
+            compact('todayAttendance', 'attendances', 'offices', 'scheduledCheckOut')
         );
     }
 

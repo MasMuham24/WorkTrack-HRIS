@@ -24,6 +24,8 @@ class UpdateOfficeRequest extends FormRequest
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'radius' => ['required', 'integer', 'min:10', 'max:5000'],
+            'check_in_time' => ['required', 'date_format:H:i'],
+            'check_out_time' => ['required', 'date_format:H:i', 'after:check_in_time'],
         ];
     }
 
@@ -34,6 +36,8 @@ class UpdateOfficeRequest extends FormRequest
             'latitude' => 'latitude',
             'longitude' => 'longitude',
             'radius' => 'radius',
+            'check_in_time' => 'check in time',
+            'check_out_time' => 'check out time',
         ];
     }
 }

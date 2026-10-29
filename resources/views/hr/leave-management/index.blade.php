@@ -91,6 +91,9 @@
                                     <td class="px-3.5 py-3 whitespace-nowrap text-right">
                                         @if($item->status === 'pending')
                                             <div class="inline-flex items-center gap-1.5">
+                                                <a href="{{ route('hr.leave-requests.show', $item->id) }}" class="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors inline-block" title="Lihat Detail">
+                                                    <i data-feather="eye" class="w-4 h-4"></i>
+                                                </a>
                                                 <form action="{{ route('hr.leave-requests.update', $item->id) }}" method="POST" class="m-0">
                                                     @csrf
                                                     @method('PUT')
@@ -192,6 +195,9 @@
                                     <td class="px-3.5 py-3 whitespace-nowrap text-right">
                                         @if($item->status === 'pending')
                                             <div class="inline-flex items-center gap-1.5">
+                                                <a href="{{ route('hr.leave-requests.show', $item->id) }}" class="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors inline-block" title="Lihat Detail">
+                                                    <i data-feather="eye" class="w-4 h-4"></i>
+                                                </a>
                                                 <form action="{{ route('hr.leave-requests.update', $item->id) }}" method="POST" class="m-0">
                                                     @csrf
                                                     @method('PUT')
@@ -265,29 +271,10 @@
     (function () {
         let latestLeaveRequestId = null;
         let isFirstLoad = true;
-        let pollingTimer = null;
-        const pollInterval = 10000;
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         const updateUrl = "{{ route('hr.leave-requests.update', ':ID') }}";
         const notificationShowUrl = "{{ route('hr.leave-requests.show', ':ID') }}";
-
-        const NOTIFICATION_KEY = 'hr_leave_notifications';
-        const MAX_NOTIFICATIONS = 50;
-
-        const leaveTypeLabels = {
-            cuti: 'cuti',
-            sakit: 'izin sakit',
-            penting: 'izin kepentingan',
-            lainnya: 'izin lainnya'
-        };
-
-        const notificationTypeLabels = {
-            cuti: 'Cuti',
-            sakit: 'Izin Sakit',
-            penting: 'Izin Penting',
-            lainnya: 'Izin'
-        };
 
         function escapeHtml(value) {
             return String(value ?? '')
@@ -304,25 +291,6 @@
                 return '-';
             }
             return parts[2] + '/' + parts[1];
-        }
-
-        function timeAgo(dateString) {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) {
-                return '';
-            }
-            const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
-            if (minutes < 1) {
-                return 'baru saja';
-            }
-            if (minutes < 60) {
-                return minutes + ' menit yang lalu';
-            }
-            const hours = Math.floor(minutes / 60);
-            if (hours < 24) {
-                return hours + ' jam yang lalu';
-            }
-            return Math.floor(hours / 24) + ' hari yang lalu';
         }
 
         function flashElement(element) {
@@ -375,6 +343,9 @@
                 '</td>' +
                 '<td class="px-3.5 py-3 whitespace-nowrap text-right">' +
                 '<div class="inline-flex items-center gap-1.5">' +
+                '<a href="' + notificationShowUrl.replace(':ID', request.id) + '" class="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors inline-block" title="Lihat Detail">' +
+                '<i data-feather="eye" class="w-4 h-4"></i>' +
+                '</a>' +
                 '<form action="' + actionUrl + '" method="POST" class="m-0">' +
                 '<input type="hidden" name="_token" value="' + csrfToken + '">' +
                 '<input type="hidden" name="_method" value="PUT">' +
@@ -418,175 +389,7 @@
                     firstRow.classList.remove('new-request');
                 }, 3000);
             }
-        }
-
-        function showLeaveNotification(request) {
-            const container = document.getElementById('notification-container');
-            if (!container) return;
-
-            const typeLabel = leaveTypeLabels[request.leave_type] || request.leave_type;
-            const name = escapeHtml(request.name || '-');
-
-            const toast = document.createElement('div');
-            toast.className = 'toast-enter pointer-events-auto max-w-sm w-full bg-white rounded-2xl shadow-xl border border-slate-200 border-l-4 border-l-emerald-500 p-4 flex items-start gap-3';
-            toast.innerHTML =
-                '<span class="text-lg leading-none">🔔</span>' +
-                '<div class="min-w-0 flex-1">' +
-                '<p class="text-xs font-bold text-slate-800">Pengajuan Baru</p>' +
-                '<p class="text-xs text-slate-600">' + name + ' mengajukan ' + escapeHtml(typeLabel) + '</p>' +
-                '<p class="text-[10px] text-slate-400 mt-0.5">' + escapeHtml(timeAgo(request.created_at)) + '</p>' +
-                '</div>' +
-                '<button type="button" class="text-slate-400 hover:text-slate-600 shrink-0 text-base" onclick="this.parentElement.remove()">×</button>';
-
-            container.appendChild(toast);
-
-            setTimeout(function () {
-                toast.classList.remove('toast-enter');
-                toast.classList.add('toast-exit');
-                setTimeout(function () {
-                    toast.remove();
-                }, 400);
-            }, 5000);
-        }
-
-        function getNotifications() {
-            try {
-                const parsed = JSON.parse(localStorage.getItem(NOTIFICATION_KEY));
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (error) {
-                return [];
-            }
-        }
-
-        function saveNotifications(notifications) {
-            try {
-                localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
-            } catch (error) {}
-        }
-
-        function getUnreadCount() {
-            return getNotifications().filter(n => !n.read).length;
-        }
-
-        function updateBellBadge() {
-            const badge = document.getElementById('notification-badge');
-            if (!badge) return;
-            const count = getUnreadCount();
-            badge.textContent = count > 99 ? '99+' : String(count || '');
-            badge.style.display = count > 0 ? 'flex' : 'none';
-        }
-
-        function storeNotification(request) {
-            const notifications = getNotifications();
-            const exists = notifications.some(n => Number(n.id) === Number(request.id));
-            if (exists) return false;
-
-            notifications.unshift({
-                id: request.id,
-                employee: request.name,
-                leave_type: request.leave_type,
-                created_at: request.created_at,
-                read: false
-            });
-
-            if (notifications.length > MAX_NOTIFICATIONS) {
-                notifications.splice(MAX_NOTIFICATIONS);
-            }
-
-            saveNotifications(notifications);
-            return true;
-        }
-
-        function renderNotifications(list) {
-            const notifications = getNotifications();
-            if (notifications.length === 0) {
-                list.innerHTML =
-                    '<div class="px-4 py-8 text-center text-slate-400">' +
-                    '<p class="text-xs">Belum ada notifikasi baru</p>' +
-                    '</div>';
-                return;
-            }
-
-            list.innerHTML = notifications.map(function (notification) {
-                const typeLabel = notificationTypeLabels[notification.leave_type] || notification.leave_type;
-                const employee = escapeHtml(notification.employee || '-');
-                const time = escapeHtml(timeAgo(notification.created_at));
-                const unread = !notification.read;
-
-                return '' +
-                    '<div class="notification-item px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-start gap-3 transition-colors" data-id="' + notification.id + '"' + (unread ? ' style="background-color: rgba(99, 102, 241, 0.05);"' : '') + '>' +
-                    '<span class="mt-1.5 h-2 w-2 rounded-full shrink-0 ' + (unread ? 'bg-indigo-600' : 'bg-transparent') + '"></span>' +
-                    '<div class="min-w-0 flex-1">' +
-                    '<p class="text-xs font-bold text-slate-800">' + employee + '</p>' +
-                    '<p class="text-[11px] text-slate-500">Mengajukan ' + escapeHtml(typeLabel) + '</p>' +
-                    '<p class="text-[10px] text-slate-400 mt-0.5">' + time + '</p>' +
-                    '</div>' +
-                    '</div>';
-            }).join('');
-        }
-
-        function getNotificationPanel() {
-            let panel = document.getElementById('notification-panel');
-            if (panel) return panel;
-
-            panel = document.createElement('div');
-            panel.id = 'notification-panel';
-            panel.className = 'fixed top-16 right-4 z-[9999] w-[340px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden hidden';
-            panel.innerHTML =
-                '<div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">' +
-                '<h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Notifikasi Masuk</h3>' +
-                '<span class="text-sm">🔔</span>' +
-                '</div>' +
-                '<div id="notification-list" class="max-h-[60vh] overflow-y-auto divide-y divide-slate-100"></div>' +
-                '<div class="px-4 py-2 border-t border-slate-100 bg-slate-50">' +
-                '<button id="mark-all-read" type="button" class="w-full text-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 py-1">Tandai semua telah dibaca</button>' +
-                '</div>';
-
-            document.body.appendChild(panel);
-
-            document.getElementById('notification-list').addEventListener('click', function (event) {
-                const item = event.target.closest('.notification-item');
-                if (!item) return;
-                openNotificationDetail(item.getAttribute('data-id'));
-            });
-
-            document.getElementById('mark-all-read').addEventListener('click', function () {
-                const notifications = getNotifications();
-                notifications.forEach(n => n.read = true);
-                saveNotifications(notifications);
-                updateBellBadge();
-                renderNotifications(document.getElementById('notification-list'));
-            });
-
-            return panel;
-        }
-
-        function openNotificationPanel() {
-            const panel = getNotificationPanel();
-            renderNotifications(document.getElementById('notification-list'));
-            panel.classList.remove('hidden');
-        }
-
-        function closeNotificationPanel() {
-            const panel = document.getElementById('notification-panel');
-            if (panel) panel.classList.add('hidden');
-        }
-
-        function toggleNotificationPanel() {
-            const panel = getNotificationPanel();
-            if (panel.classList.contains('hidden')) {
-                openNotificationPanel();
-            } else {
-                closeNotificationPanel();
-            }
-        }
-
-        function openNotificationDetail(id) {
-            const notifications = getNotifications().map(n => Number(n.id) === Number(id) ? { ...n, read: true } : n);
-            saveNotifications(notifications);
-            updateBellBadge();
-            closeNotificationPanel();
-            window.location.href = notificationShowUrl.replace(':ID', id);
+            if (window.feather) feather.replace();
         }
 
         function processRequests(data) {
@@ -609,79 +412,28 @@
             const canInsert = shouldInsertRows();
 
             newRequests.forEach(function (request) {
-                if (!storeNotification(request)) return;
-                updateBellBadge();
                 if (canInsert) insertRequestRow(request);
-                showLeaveNotification(request);
             });
 
             latestLeaveRequestId = latestId;
         }
 
-        async function loadLiveLeaveRequests() {
-            const url = "{{ route('hr.leave-requests.live') }}";
-            try {
-                const response = await fetch(url, {
-                    cache: 'no-store',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                if (!response.ok) throw new Error('Network error');
-
-                const data = await response.json();
-                updateStatistics(data);
-                processRequests(data);
-
-                const lastUpdated = document.getElementById('last-updated');
-                if (lastUpdated) lastUpdated.textContent = 'baru saja';
-            } catch (error) {}
-        }
-
-        function startPolling() {
-            if (pollingTimer === null) pollingTimer = setInterval(loadLiveLeaveRequests, pollInterval);
-        }
-
-        function stopPolling() {
-            if (pollingTimer !== null) {
-                clearInterval(pollingTimer);
-                pollingTimer = null;
-            }
-        }
-
-        function bindNotificationBell() {
-            const bell = document.getElementById('notification-bell');
-            if (bell) {
-                bell.addEventListener('click', function (event) {
-                    event.stopPropagation();
-                    toggleNotificationPanel();
-                });
-            }
-
-            document.addEventListener('click', function (event) {
-                const panel = document.getElementById('notification-panel');
-                if (!panel || panel.classList.contains('hidden')) return;
-                if (event.target.closest('#notification-bell') || event.target.closest('#notification-panel')) return;
-                closeNotificationPanel();
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            updateBellBadge();
-            bindNotificationBell();
-            loadLiveLeaveRequests();
-            startPolling();
-        });
-
-        document.addEventListener('visibilitychange', function () {
-            if (document.hidden) {
-                stopPolling();
+        function openNotificationDetail(id) {
+            if (window.openHRNotificationDetail) {
+                window.openHRNotificationDetail(id);
             } else {
-                loadLiveLeaveRequests();
-                startPolling();
+                window.location.href = notificationShowUrl.replace(':ID', id);
             }
+        }
+        window.openNotificationDetail = openNotificationDetail;
+
+        window.addEventListener('hr-live-data', function (event) {
+            const data = event.detail;
+            if (!data) return;
+            updateStatistics(data);
+            processRequests(data);
+            const lastUpdated = document.getElementById('last-updated');
+            if (lastUpdated) lastUpdated.textContent = 'baru saja';
         });
     })();
 </script>

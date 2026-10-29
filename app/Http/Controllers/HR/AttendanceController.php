@@ -25,12 +25,17 @@ class AttendanceController extends Controller
         $offices =
             $this->attendanceService->getOffices();
 
+        $scheduledCheckOut = $todayAttendance
+            ? $this->attendanceService->getScheduledCheckOutAt($todayAttendance)
+            : null;
+
         return view(
             'hr.attendance.index',
             compact(
                 'todayAttendance',
                 'attendances',
-                'offices'
+                'offices',
+                'scheduledCheckOut'
             )
         );
     }
@@ -52,10 +57,10 @@ class AttendanceController extends Controller
                     : null
             );
 
-            $msg = 'Check in berhasil di ' .
-                $attendance->office->name .
-                ' (Jarak: ' .
-                number_format($attendance->distance, 0) .
+            $msg = 'Check in berhasil di '.
+                $attendance->office->name.
+                ' (Jarak: '.
+                number_format($attendance->distance, 0).
                 ' meter).';
 
             return $request->ajax()

@@ -96,10 +96,31 @@
             </div>
         </div>
 
-        <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex justify-end">
-            <a href="{{ route('hr.leave-requests.index') }}" class="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors">
+        <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <a href="{{ route('hr.leave-requests.index') }}" class="inline-flex items-center justify-center px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-xs">
+                <i data-feather="arrow-left" class="w-4 h-4 mr-1.5"></i>
                 Kembali ke Daftar
             </a>
+            @if($leaveRequest->status === 'pending' && $leaveRequest->user_id !== Auth::id())
+                <div class="flex items-center space-x-2 justify-end">
+                    <form action="{{ route('hr.leave-requests.update', $leaveRequest->id) }}" method="POST" class="m-0">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="status" value="rejected">
+                        <button type="submit" class="px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition shadow-xs">
+                            Tolak Pengajuan
+                        </button>
+                    </form>
+                    <form action="{{ route('hr.leave-requests.update', $leaveRequest->id) }}" method="POST" class="m-0">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="status" value="approved">
+                        <button type="submit" class="px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-xs">
+                            Setujui Pengajuan
+                        </button>
+                    </form>
+                </div>
+            @endif
         </div>
     </div>
 </div>

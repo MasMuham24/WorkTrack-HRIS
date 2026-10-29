@@ -134,6 +134,9 @@
                             <td class="px-5 py-3.5 whitespace-nowrap text-right">
                                 @if($item->status === 'pending')
                                     <div class="inline-flex items-center gap-1.5">
+                                        <a href="{{ route('hr.leave-requests.show', $item->id) }}" class="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors inline-block" title="Lihat Detail">
+                                            <i data-feather="eye" class="w-4 h-4"></i>
+                                        </a>
                                         <form action="{{ route('hr.leave-requests.update', $item->id) }}" method="POST" class="m-0">
                                             @csrf
                                             @method('PUT')

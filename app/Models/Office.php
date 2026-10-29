@@ -15,6 +15,8 @@ class Office extends Model
         'latitude',
         'longitude',
         'radius',
+        'check_in_time',
+        'check_out_time',
     ];
 
     protected $casts = [

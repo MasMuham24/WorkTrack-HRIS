@@ -4,7 +4,6 @@ namespace App\Http\Requests\Office;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Override;
 
 class StoreOfficeRequest extends FormRequest
 {
@@ -28,9 +27,11 @@ class StoreOfficeRequest extends FormRequest
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'radius' => ['required', 'integer', 'min:10', 'max:5000'],
+            'check_in_time' => ['required', 'date_format:H:i'],
+            'check_out_time' => ['required', 'date_format:H:i', 'after:check_in_time'],
         ];
     }
-    
+
     public function attributes(): array
     {
         return [
@@ -38,6 +39,8 @@ class StoreOfficeRequest extends FormRequest
             'latitude' => 'latitude',
             'longitude' => 'longitude',
             'radius' => 'radius',
+            'check_in_time' => 'check in time',
+            'check_out_time' => 'check out time',
         ];
     }
 }
