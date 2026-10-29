@@ -1,98 +1,104 @@
 @extends('layouts.app')
 
 @section('title', 'Presensi Karyawan')
-@section('header_title', 'Absensi Harian')
+@section('header_title', 'Presensi Harian')
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-5xl mx-auto space-y-6">
     <!-- Card Menu / Aksi Absensi Hari Ini -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <div class="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <h2 class="text-lg font-semibold text-slate-800">Presensi Hari Ini</h2>
-                <p class="text-sm text-slate-500 mt-0.5">{{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}</p>
+                <h2 class="text-base sm:text-lg font-bold text-slate-800">Presensi Hari Ini</h2>
+                <p class="text-xs sm:text-sm text-slate-500 mt-0.5">{{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}</p>
             </div>
-            <div class="text-right">
-                <span class="text-2xl font-bold text-indigo-600" x-data x-init="setInterval(() => $el.innerText = new Date().toLocaleTimeString(), 1000)">
+            <div class="flex items-center sm:text-right space-x-2 sm:space-x-0">
+                <span class="inline-flex items-center px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 font-mono text-xl sm:text-2xl font-extrabold tracking-tight"
+                    x-data x-init="setInterval(() => $el.innerText = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }), 1000)">
                     {{ \Carbon\Carbon::now()->format('H:i:s') }}
                 </span>
             </div>
         </div>
 
-        <div class="p-6">
+        <div class="p-5 sm:p-8">
             @if(!$todayAttendance)
                 <!-- Belum Check In -->
-                <div class="text-center py-8 space-y-4">
-                    <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto">
-                        <i data-feather="clock" class="w-8 h-8"></i>
+                <div class="text-center py-6 sm:py-8 max-w-lg mx-auto space-y-4">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                        <i data-feather="clock" class="w-8 h-8 sm:w-10 sm:h-10"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-semibold text-slate-800">Anda belum melakukan Check In hari ini</h3>
-                        <p class="text-sm text-slate-500 mt-1">Jam masuk kerja pukul 08:00 WIB, jam pulang pukul 16:00 WIB. Harap melakukan check-in tepat waktu.</p>
+                        <h3 class="text-lg font-bold text-slate-800">Anda belum melakukan Check In hari ini</h3>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
+                            Jam masuk kerja pukul <strong>08:00 WIB</strong>, jam pulang pukul <strong>16:00 WIB</strong>. Harap pastikan GPS/Lokasi perangkat aktif untuk presensi.
+                        </p>
                     </div>
-                    <div id="checkin-button">
-                        <button type="button" id="checkin-btn" class="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 border border-transparent rounded-xl font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg shadow-indigo-600/20 transition-all transform hover:-translate-y-0.5">
+                    <div id="checkin-button" class="pt-2">
+                        <button type="button" id="checkin-btn"
+                            class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm sm:text-base rounded-xl shadow-lg shadow-indigo-600/25 transition-all transform active:scale-98">
                             <i data-feather="log-in" class="w-5 h-5 mr-2"></i>
                             Check In Sekarang (Deteksi Lokasi)
                         </button>
                     </div>
                 </div>
             @elseif(!$todayAttendance->check_out)
-                <!-- Sudah Check In, Belum Check Out (Tombol berubah menjadi Check Out) -->
+                <!-- Sudah Check In, Belum Check Out -->
                 <div class="space-y-6">
                     <!-- Location Info Display -->
                     @if($todayAttendance->office)
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div>
-                                <p class="text-sm font-medium text-blue-800">Kantor Terdaftar: <span class="font-semibold">{{ $todayAttendance->office->name }}</span></p>
-                                <p class="text-sm text-blue-600">Radius: {{ number_format($todayAttendance->office->radius) }} meter</p>
-                            </div>
-                            <div>
-                                @if($todayAttendance->latitude && $todayAttendance->longitude)
-                                <p class="text-sm font-medium text-blue-800">Lokasi Anda:</p>
-                                <p class="text-sm text-blue-600">Lat: {{ number_format($todayAttendance->latitude, 6) }}, Lon: {{ number_format($todayAttendance->longitude, 6) }}</p>
-                                @if($todayAttendance->distance)
-                                <p class="text-sm text-blue-600">Jarak: {{ number_format($todayAttendance->distance, 0) }} meter dari kantor</p>
-                                @endif
-                                @if($todayAttendance->accuracy)
-                                <p class="text-sm text-blue-600">Akurasi GPS: {{ number_format($todayAttendance->accuracy, 2) }} meter</p>
-                                @endif
-                                @endif
+                        <div class="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 sm:p-5">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-xs sm:text-sm font-bold text-blue-900">
+                                        Kantor: <span>{{ $todayAttendance->office->name }}</span>
+                                    </p>
+                                    <p class="text-xs text-blue-700 mt-0.5">
+                                        Radius valid: {{ number_format($todayAttendance->office->radius) }} meter
+                                    </p>
+                                </div>
+                                <div class="text-left sm:text-right text-xs text-blue-700">
+                                    @if($todayAttendance->latitude && $todayAttendance->longitude)
+                                        <p class="font-medium text-blue-900">Lokasi Tercatat:</p>
+                                        <p>Lat: {{ number_format($todayAttendance->latitude, 5) }}, Lon: {{ number_format($todayAttendance->longitude, 5) }}</p>
+                                        @if($todayAttendance->distance !== null)
+                                            <p class="font-semibold text-blue-800 mt-0.5">Jarak: {{ number_format($todayAttendance->distance, 0) }} meter</p>
+                                        @endif
+                                    @endif
+                                </div>
                             </div>
                         </div>
-                    </div>
                     @endif
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="bg-slate-50 p-4 rounded-xl">
-                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Jam Masuk</span>
-                            <p class="text-lg font-bold text-slate-800 mt-1">{{ $todayAttendance->check_in }}</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jam Masuk</span>
+                            <p class="text-lg sm:text-xl font-extrabold text-slate-800 mt-1">{{ $todayAttendance->check_in }}</p>
                         </div>
-                        <div class="bg-slate-50 p-4 rounded-xl">
-                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</span>
-                            <p class="text-lg font-bold mt-1">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status Presensi</span>
+                            <p class="text-lg sm:text-xl font-extrabold mt-1">
                                 @if($todayAttendance->status === 'terlambat')
                                     <span class="text-amber-600 inline-flex items-center">
                                         <span class="w-2 h-2 rounded-full bg-amber-500 mr-2"></span> Terlambat ({{ $todayAttendance->late_minutes }} mnt)
                                     </span>
                                 @else
                                     <span class="text-emerald-600 inline-flex items-center">
-                                        <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span> Hadir
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span> Hadir Tepat Waktu
                                     </span>
                                 @endif
                             </p>
                         </div>
-                        <div class="bg-slate-50 p-4 rounded-xl">
-                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Jam Keluar</span>
-                            <p class="text-lg font-bold text-slate-400 mt-1">Belum Check Out</p>
-                            <p class="text-xs text-slate-400 mt-0.5">Jadwal pulang 16:00 WIB</p>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jam Keluar</span>
+                            <p class="text-lg sm:text-xl font-bold text-slate-400 mt-1">Belum Check Out</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Jadwal pulang 16:00 WIB</p>
                         </div>
                     </div>
 
                     <div class="text-center pt-2">
                         <div id="checkout-button">
-                            <button type="button" id="checkout-btn" class="inline-flex items-center justify-center px-6 py-3 bg-emerald-600 border border-transparent rounded-xl font-semibold text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-lg shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5">
+                            <button type="button" id="checkout-btn"
+                                class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm sm:text-base rounded-xl shadow-lg shadow-emerald-600/25 transition-all transform active:scale-98">
                                 <i data-feather="log-out" class="w-5 h-5 mr-2"></i>
                                 Check Out Sekarang (Deteksi Lokasi)
                             </button>
@@ -100,61 +106,64 @@
                     </div>
                 </div>
             @else
-                <!-- Sudah Selesai Check In & Check Out (Tombol Disabled) -->
+                <!-- Sudah Selesai Check In & Check Out -->
                 <div class="space-y-6">
-                    <!-- Location Info Display -->
                     @if($todayAttendance->office)
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div>
-                                <p class="text-sm font-medium text-blue-800">Kantor Terdaftar: <span class="font-semibold">{{ $todayAttendance->office->name }}</span></p>
-                                <p class="text-sm text-blue-600">Radius: {{ number_format($todayAttendance->office->radius) }} meter</p>
-                            </div>
-                            <div>
-                                @if($todayAttendance->latitude && $todayAttendance->longitude)
-                                <p class="text-sm font-medium text-blue-800">Lokasi Anda:</p>
-                                <p class="text-sm text-blue-600">Lat: {{ number_format($todayAttendance->latitude, 6) }}, Lon: {{ number_format($todayAttendance->longitude, 6) }}</p>
-                                @if($todayAttendance->distance)
-                                <p class="text-sm text-blue-600">Jarak: {{ number_format($todayAttendance->distance, 0) }} meter dari kantor</p>
-                                @endif
-                                @endif
+                        <div class="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 sm:p-5">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-xs sm:text-sm font-bold text-blue-900">
+                                        Kantor: <span>{{ $todayAttendance->office->name }}</span>
+                                    </p>
+                                    <p class="text-xs text-blue-700 mt-0.5">
+                                        Radius valid: {{ number_format($todayAttendance->office->radius) }} meter
+                                    </p>
+                                </div>
+                                <div class="text-left sm:text-right text-xs text-blue-700">
+                                    @if($todayAttendance->latitude && $todayAttendance->longitude)
+                                        <p class="font-medium text-blue-900">Lokasi Tercatat:</p>
+                                        <p>Lat: {{ number_format($todayAttendance->latitude, 5) }}, Lon: {{ number_format($todayAttendance->longitude, 5) }}</p>
+                                        @if($todayAttendance->distance !== null)
+                                            <p class="font-semibold text-blue-800 mt-0.5">Jarak: {{ number_format($todayAttendance->distance, 0) }} meter</p>
+                                        @endif
+                                    @endif
+                                </div>
                             </div>
                         </div>
-                    </div>
                     @endif
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="bg-slate-50 p-4 rounded-xl">
-                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Jam Masuk</span>
-                            <p class="text-lg font-bold text-slate-800 mt-1">{{ $todayAttendance->check_in }}</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jam Masuk</span>
+                            <p class="text-lg sm:text-xl font-extrabold text-slate-800 mt-1">{{ $todayAttendance->check_in }}</p>
                         </div>
-                        <div class="bg-slate-50 p-4 rounded-xl">
-                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</span>
-                            <p class="text-lg font-bold mt-1">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status Presensi</span>
+                            <p class="text-lg sm:text-xl font-extrabold mt-1">
                                 @if($todayAttendance->status === 'terlambat')
                                     <span class="text-amber-600 inline-flex items-center">
                                         <span class="w-2 h-2 rounded-full bg-amber-500 mr-2"></span> Terlambat ({{ $todayAttendance->late_minutes }} mnt)
                                     </span>
                                 @else
                                     <span class="text-emerald-600 inline-flex items-center">
-                                        <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span> Hadir
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span> Hadir Tepat Waktu
                                     </span>
                                 @endif
                             </p>
                         </div>
-                        <div class="bg-slate-50 p-4 rounded-xl">
-                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Jam Keluar</span>
-                            <p class="text-lg font-bold text-slate-800 mt-1">{{ $todayAttendance->check_out }}</p>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jam Keluar</span>
+                            <p class="text-lg sm:text-xl font-extrabold text-slate-800 mt-1">{{ $todayAttendance->check_out }}</p>
                         </div>
                     </div>
 
                     <div class="text-center pt-2">
-                        <div class="p-4 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-medium mb-4">
-                            Presensi hari ini telah selesai. Terima kasih atas kerja keras Anda!
+                        <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs sm:text-sm font-semibold mb-4">
+                            Presensi hari ini telah selesai lengkap. Terima kasih atas dedikasi dan kerja keras Anda!
                         </div>
-                        <button type="button" disabled class="inline-flex items-center justify-center px-6 py-3 bg-slate-200 text-slate-400 rounded-xl font-semibold cursor-not-allowed">
+                        <button type="button" disabled class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3 bg-slate-100 text-slate-400 rounded-xl font-bold text-sm cursor-not-allowed">
                             <i data-feather="check-circle" class="w-5 h-5 mr-2"></i>
-                            Sudah Check Out (Selesai)
+                            Sudah Check Out (Presensi Selesai)
                         </button>
                     </div>
                 </div>
@@ -162,66 +171,66 @@
         </div>
     </div>
 
-    <!-- Riwayat Absensi Milik User Yang Sedang Login -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="p-6 border-b border-slate-200">
-            <h2 class="text-lg font-semibold text-slate-800">Riwayat Absensi Anda</h2>
-            <p class="text-sm text-slate-500 mt-0.5">Daftar rekam jejak kehadiran Anda di PT Bintang Anugrah.</p>
+    <!-- Riwayat Absensi Table Card -->
+    <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <div class="p-5 sm:p-6 border-b border-slate-100">
+            <h2 class="text-base sm:text-lg font-bold text-slate-800">Riwayat Absensi Anda</h2>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Daftar rekam jejak kehadiran Anda di PT Bintang Anugrah.</p>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200">
-                <thead class="bg-slate-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanggal</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Jam Masuk</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Jam Keluar</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Kantor</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Jarak</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Keterlambatan</th>
+            <table class="w-full text-left border-collapse min-w-[720px]">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th class="px-5 py-3.5">Tanggal</th>
+                        <th class="px-5 py-3.5">Jam Masuk</th>
+                        <th class="px-5 py-3.5">Jam Keluar</th>
+                        <th class="px-5 py-3.5">Kantor</th>
+                        <th class="px-5 py-3.5">Jarak</th>
+                        <th class="px-5 py-3.5">Status</th>
+                        <th class="px-5 py-3.5">Keterlambatan</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-slate-200">
+                <tbody class="divide-y divide-slate-100 text-sm">
                     @forelse($attendances as $att)
-                        <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
+                        <tr class="hover:bg-slate-50/70 transition-colors">
+                            <td class="px-5 py-3.5 whitespace-nowrap font-medium text-slate-800">
                                 {{ \Carbon\Carbon::parse($att->attendance_date)->translatedFormat('d M Y') }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            <td class="px-5 py-3.5 whitespace-nowrap text-slate-600">
                                 {{ $att->check_in ?? '-' }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            <td class="px-5 py-3.5 whitespace-nowrap text-slate-600">
                                 {{ $att->check_out ?? '-' }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            <td class="px-5 py-3.5 whitespace-nowrap text-slate-600">
                                 {{ $att->office ? $att->office->name : 'Tidak terdaftar' }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                                @if($att->distance)
+                            <td class="px-5 py-3.5 whitespace-nowrap text-slate-600">
+                                @if($att->distance !== null)
                                     <span class="font-medium">{{ number_format($att->distance, 0) }} m</span>
                                 @else
                                     <span class="text-slate-400">-</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <td class="px-5 py-3.5 whitespace-nowrap">
                                 @if($att->status === 'terlambat')
-                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">
+                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                                         Terlambat
                                     </span>
                                 @elseif($att->status === 'hadir')
-                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
+                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                                         Hadir
                                     </span>
                                 @else
-                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800">
+                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">
                                         {{ ucfirst($att->status) }}
                                     </span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            <td class="px-5 py-3.5 whitespace-nowrap text-slate-600">
                                 @if($att->late_minutes > 0)
-                                    <span class="text-amber-600 font-medium">{{ $att->late_minutes }} menit</span>
+                                    <span class="text-amber-600 font-semibold">{{ $att->late_minutes }} menit</span>
                                 @else
                                     <span class="text-slate-400">Tepat waktu</span>
                                 @endif
@@ -230,7 +239,10 @@
                     @empty
                         <tr>
                             <td colspan="7" class="px-6 py-12 text-center text-slate-400 text-sm">
-                                Belum ada riwayat absensi tercatat.
+                                <div class="flex flex-col items-center justify-center">
+                                    <i data-feather="calendar" class="w-8 h-8 text-slate-300 mb-2"></i>
+                                    <p class="font-medium text-slate-500">Belum ada riwayat absensi tercatat.</p>
+                                </div>
                             </td>
                         </tr>
                     @endforelse
@@ -239,7 +251,7 @@
         </div>
 
         @if($attendances->hasPages())
-            <div class="p-4 border-t border-slate-200">
+            <div class="p-4 border-t border-slate-100 bg-slate-50/50">
                 {{ $attendances->links() }}
             </div>
         @endif
@@ -265,7 +277,15 @@
                     });
                 },
                 (error) => {
-                    reject(error);
+                    let msg = 'Gagal mendeteksi lokasi.';
+                    if (error.code === error.PERMISSION_DENIED) {
+                        msg = 'Izin akses lokasi (GPS) ditolak. Mohon aktifkan izin lokasi di browser Anda.';
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        msg = 'Informasi lokasi tidak tersedia.';
+                    } else if (error.code === error.TIMEOUT) {
+                        msg = 'Waktu permintaan lokasi habis.';
+                    }
+                    reject(new Error(msg));
                 },
                 {
                     enableHighAccuracy: true,
@@ -278,10 +298,10 @@
 
     async function performCheckIn() {
         const button = document.getElementById('checkin-btn');
+        if (!button) return;
         const originalHtml = button.innerHTML;
         button.disabled = true;
-        button.innerHTML = '<i class="w-5 h-5 mr-2 animate-spin" data-feather="loader">Loading...</i> Mendeteksi lokasi...';
-        feather.replace();
+        button.innerHTML = '<span class="inline-block animate-pulse">⏳ Mendeteksi lokasi...</span>';
 
         try {
             const location = await getLocation();
@@ -305,16 +325,16 @@
             if (response.ok) {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Berhasil!',
+                    title: 'Berhasil Check In!',
                     text: data.message,
-                    confirmButtonColor: '#10b981'
+                    confirmButtonColor: '#4f46e5'
                 }).then(() => {
                     window.location.reload();
                 });
             } else {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal!',
+                    title: 'Gagal Check In',
                     text: data.message || 'Terjadi kesalahan saat check in',
                     confirmButtonColor: '#ef4444'
                 });
@@ -322,8 +342,8 @@
         } catch (error) {
             Swal.fire({
                 icon: 'error',
-                title: 'Error Lokasi',
-                text: 'Tidak dapat mendapatkan lokasi: ' + error.message,
+                title: 'Perhatian Lokasi',
+                text: error.message,
                 confirmButtonColor: '#ef4444'
             });
         } finally {
@@ -335,10 +355,10 @@
 
     async function performCheckOut() {
         const button = document.getElementById('checkout-btn');
+        if (!button) return;
         const originalHtml = button.innerHTML;
         button.disabled = true;
-        button.innerHTML = '<i class="w-5 h-5 mr-2 animate-spin" data-feather="loader">Loading...</i> Mendeteksi lokasi...';
-        feather.replace();
+        button.innerHTML = '<span class="inline-block animate-pulse">⏳ Mendeteksi lokasi...</span>';
 
         try {
             const location = await getLocation();
@@ -362,7 +382,7 @@
             if (response.ok) {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Berhasil!',
+                    title: 'Berhasil Check Out!',
                     text: data.message,
                     confirmButtonColor: '#10b981'
                 }).then(() => {
@@ -371,7 +391,7 @@
             } else {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal!',
+                    title: 'Gagal Check Out',
                     text: data.message || 'Terjadi kesalahan saat check out',
                     confirmButtonColor: '#ef4444'
                 });
@@ -379,8 +399,8 @@
         } catch (error) {
             Swal.fire({
                 icon: 'error',
-                title: 'Error Lokasi',
-                text: 'Tidak dapat mendapatkan lokasi: ' + error.message,
+                title: 'Perhatian Lokasi',
+                text: error.message,
                 confirmButtonColor: '#ef4444'
             });
         } finally {
@@ -394,4 +414,3 @@
     document.getElementById('checkout-btn')?.addEventListener('click', performCheckOut);
 </script>
 @endpush
-</content>

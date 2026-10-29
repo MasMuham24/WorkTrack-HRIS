@@ -4,165 +4,190 @@
 @section('header_title', 'Manajemen Karyawan')
 
 @section('content')
-<div class="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-    <div class="w-full max-w-2xl">
-        <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <h2 class="text-xl font-semibold text-slate-800">Edit Karyawan</h2>
-                <p class="text-sm text-slate-500 mt-1">Ubah informasi karyawan {{ $employee->name }}.</p>
-            </div>
-            <a href="{{ route('management.employees.index') }}" class="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-300 rounded-lg px-4 py-2.5 shadow-sm hover:bg-slate-50 transition-colors shrink-0">
-                <i data-feather="arrow-left" class="w-4 h-4 mr-2"></i>
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-800">Edit Data Karyawan</h2>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Ubah informasi kepegawaian {{ $employee->name }}.</p>
+        </div>
+        <div>
+            <a href="{{ route('management.employees.index') }}" class="inline-flex items-center text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-300 rounded-xl px-3.5 py-2 hover:bg-slate-50 transition-colors shadow-xs">
+                <i data-feather="arrow-left" class="w-4 h-4 mr-1.5"></i>
                 Kembali
             </a>
         </div>
+    </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <form action="{{ route('management.employees.update', $employee->id) }}" method="POST">
-                @csrf
-                @method('PUT')
-                
-                <div class="p-6 space-y-6">
-                    <!-- Kode Karyawan -->
+    <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <form action="{{ route('management.employees.update', $employee->id) }}" method="POST">
+            @csrf
+            @method('PUT')
+            
+            <div class="p-5 sm:p-8 space-y-5">
+                <!-- Kode & Nama -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                     <div>
-                        <label for="employee_code" class="block text-sm font-medium text-slate-700 mb-1">Kode Karyawan <span class="text-red-500">*</span></label>
+                        <label for="employee_code" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Kode Karyawan <span class="text-rose-500">*</span>
+                        </label>
                         <input type="text" name="employee_code" id="employee_code" value="{{ old('employee_code', $employee->employee_code) }}" required
-                            class="block w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border placeholder-slate-400"
+                            class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm font-mono text-slate-800 placeholder-slate-400 bg-white"
                             placeholder="Contoh: EMP002">
                         @error('employee_code')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1 text-xs text-rose-500 font-semibold">{{ $message }}</p>
                         @enderror
                     </div>
-
-                    <!-- Nama Lengkap -->
-                    <div>
-                        <label for="name" class="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap <span class="text-red-500">*</span></label>
+                    <div class="sm:col-span-2">
+                        <label for="name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Nama Lengkap <span class="text-rose-500">*</span>
+                        </label>
                         <input type="text" name="name" id="name" value="{{ old('name', $employee->name) }}" required
-                            class="block w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border placeholder-slate-400"
+                            class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-slate-800 placeholder-slate-400 bg-white"
                             placeholder="Contoh: Budi Santoso">
                         @error('name')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1 text-xs text-rose-500 font-semibold">{{ $message }}</p>
                         @enderror
                     </div>
+                </div>
 
-                    <!-- Username & Email -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div>
-                            <label for="username" class="block text-sm font-medium text-slate-700 mb-1">Username <span class="text-red-500">*</span></label>
-                            <input type="text" name="username" id="username" value="{{ old('username', $employee->username) }}" required
-                                class="block w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border placeholder-slate-400"
-                                placeholder="Contoh: budi.santoso">
-                            @error('username')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="email" class="block text-sm font-medium text-slate-700 mb-1">Email <span class="text-red-500">*</span></label>
-                            <input type="email" name="email" id="email" value="{{ old('email', $employee->email) }}" required
-                                class="block w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border placeholder-slate-400"
-                                placeholder="Contoh: budi@example.com">
-                            @error('email')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <!-- Telepon -->
+                <!-- Username & Email -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div>
-                        <label for="phone" class="block text-sm font-medium text-slate-700 mb-1">Telepon</label>
-                        <input type="text" name="phone" id="phone" value="{{ old('phone', $employee->phone) }}"
-                            class="block w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border placeholder-slate-400"
-                            placeholder="Contoh: 081234567890">
-                        @error('phone')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <label for="username" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Username <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" name="username" id="username" value="{{ old('username', $employee->username) }}" required
+                            class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-slate-800 placeholder-slate-400 bg-white"
+                            placeholder="Contoh: budi.santoso">
+                        @error('username')
+                            <p class="mt-1 text-xs text-rose-500 font-semibold">{{ $message }}</p>
                         @enderror
                     </div>
-
-                    <!-- Departemen & Jabatan -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div>
-                            <label for="departement_id" class="block text-sm font-medium text-slate-700 mb-1">Departemen <span class="text-red-500">*</span></label>
-                            <select name="departement_id" id="departement_id" required
-                                class="block w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border bg-white">
-                                <option value="">-- Pilih Departemen --</option>
-                                @foreach($departments as $dept)
-                                    <option value="{{ $dept->id }}" {{ old('departement_id', $employee->departement_id) == $dept->id ? 'selected' : '' }}>
-                                        {{ $dept->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('departement_id')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="position_id" class="block text-sm font-medium text-slate-700 mb-1">Jabatan <span class="text-red-500">*</span></label>
-                            <select name="position_id" id="position_id" required
-                                class="block w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border bg-white">
-                                <option value="">-- Pilih Jabatan --</option>
-                                @foreach($positions as $pos)
-                                    <option value="{{ $pos->id }}" data-dept="{{ $pos->departement_id }}" {{ old('position_id', $employee->position_id) == $pos->id ? 'selected' : '' }}>
-                                        {{ $pos->name }} ({{ $pos->departement->name ?? '-' }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('position_id')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <!-- Tanggal Masuk & Status -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div>
-                            <label for="hire_date" class="block text-sm font-medium text-slate-700 mb-1">Tanggal Masuk <span class="text-red-500">*</span></label>
-                            <input type="date" name="hire_date" id="hire_date" value="{{ old('hire_date', $employee->hire_date?->format('Y-m-d')) }}" required
-                                class="block w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border placeholder-slate-400">
-                            @error('hire_date')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="status" class="block text-sm font-medium text-slate-700 mb-1">Status <span class="text-red-500">*</span></label>
-                            <select name="status" id="status" required
-                                class="block w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border bg-white">
-                                <option value="active" {{ old('status', $employee->status) === 'active' ? 'selected' : '' }}>Aktif</option>
-                                <option value="inactive" {{ old('status', $employee->status) === 'inactive' ? 'selected' : '' }}>Nonaktif</option>
-                            </select>
-                            @error('status')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <!-- Password (opsional saat edit) -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div>
-                            <label for="password" class="block text-sm font-medium text-slate-700 mb-1">Password <span class="text-slate-400">(opsional)</span></label>
-                            <input type="password" name="password" id="password"
-                                class="block w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border placeholder-slate-400"
-                                placeholder="Kosongkan jika tidak ingin mengubah">
-                            @error('password')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="password_confirmation" class="block text-sm font-medium text-slate-700 mb-1">Konfirmasi Password</label>
-                            <input type="password" name="password_confirmation" id="password_confirmation"
-                                class="block w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border placeholder-slate-400"
-                                placeholder="Ulangi password">
-                        </div>
+                    <div>
+                        <label for="email" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Email <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="email" name="email" id="email" value="{{ old('email', $employee->email) }}" required
+                            class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-slate-800 placeholder-slate-400 bg-white"
+                            placeholder="Contoh: budi@bintanganugrah.com">
+                        @error('email')
+                            <p class="mt-1 text-xs text-rose-500 font-semibold">{{ $message }}</p>
+                        @enderror
                     </div>
                 </div>
 
-                <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
-                    <button type="submit" class="inline-flex justify-center items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
-                        <i data-feather="save" class="w-4 h-4 mr-2"></i>
-                        Simpan Perubahan
-                    </button>
+                <!-- Telepon -->
+                <div>
+                    <label for="phone" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Nomor Telepon
+                    </label>
+                    <input type="text" name="phone" id="phone" value="{{ old('phone', $employee->phone) }}"
+                        class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-slate-800 placeholder-slate-400 bg-white"
+                        placeholder="Contoh: 081234567890">
+                    @error('phone')
+                        <p class="mt-1 text-xs text-rose-500 font-semibold">{{ $message }}</p>
+                    @enderror
                 </div>
-            </form>
-        </div>
+
+                <!-- Departemen & Jabatan -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div>
+                        <label for="departement_id" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Departemen <span class="text-rose-500">*</span>
+                        </label>
+                        <select name="departement_id" id="departement_id" required
+                            class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-slate-800 bg-white">
+                            <option value="">-- Pilih Departemen --</option>
+                            @foreach($departments as $dept)
+                                <option value="{{ $dept->id }}" {{ old('departement_id', $employee->departement_id) == $dept->id ? 'selected' : '' }}>
+                                    {{ $dept->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('departement_id')
+                            <p class="mt-1 text-xs text-rose-500 font-semibold">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="position_id" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Jabatan <span class="text-rose-500">*</span>
+                        </label>
+                        <select name="position_id" id="position_id" required
+                            class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-slate-800 bg-white">
+                            <option value="">-- Pilih Jabatan --</option>
+                            @foreach($positions as $pos)
+                                <option value="{{ $pos->id }}" data-dept="{{ $pos->departement_id }}" {{ old('position_id', $employee->position_id) == $pos->id ? 'selected' : '' }}>
+                                    {{ $pos->name }} ({{ $pos->departement->name ?? '-' }})
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('position_id')
+                            <p class="mt-1 text-xs text-rose-500 font-semibold">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Tanggal Masuk & Status -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div>
+                        <label for="hire_date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Tanggal Bergabung <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="date" name="hire_date" id="hire_date" value="{{ old('hire_date', $employee->hire_date?->format('Y-m-d')) }}" required
+                            class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-slate-800 bg-white">
+                        @error('hire_date')
+                            <p class="mt-1 text-xs text-rose-500 font-semibold">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="status" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Status Akun <span class="text-rose-500">*</span>
+                        </label>
+                        <select name="status" id="status" required
+                            class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-slate-800 bg-white">
+                            <option value="active" {{ old('status', $employee->status) === 'active' ? 'selected' : '' }}>Aktif</option>
+                            <option value="inactive" {{ old('status', $employee->status) === 'inactive' ? 'selected' : '' }}>Nonaktif</option>
+                        </select>
+                        @error('status')
+                            <p class="mt-1 text-xs text-rose-500 font-semibold">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Password (opsional saat edit) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-2 border-t border-slate-100">
+                    <div>
+                        <label for="password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Password Baru <span class="text-slate-400 font-normal lowercase">(kosongkan jika tidak diubah)</span>
+                        </label>
+                        <input type="password" name="password" id="password"
+                            class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-slate-800 placeholder-slate-400 bg-white"
+                            placeholder="Minimal 8 karakter">
+                        @error('password')
+                            <p class="mt-1 text-xs text-rose-500 font-semibold">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="password_confirmation" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Konfirmasi Password Baru
+                        </label>
+                        <input type="password" name="password_confirmation" id="password_confirmation"
+                            class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-slate-800 placeholder-slate-400 bg-white"
+                            placeholder="Ulangi password baru">
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                <a href="{{ route('management.employees.index') }}" class="w-full sm:w-auto text-center px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
+                    Batalkan
+                </a>
+                <button type="submit" class="w-full sm:w-auto inline-flex justify-center items-center px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-indigo-600/20 transition">
+                    <i data-feather="save" class="w-4 h-4 mr-2"></i>
+                    Simpan Perubahan
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 @endsection

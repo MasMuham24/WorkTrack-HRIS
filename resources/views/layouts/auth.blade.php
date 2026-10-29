@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full bg-slate-50">
+<html lang="id" class="h-full bg-slate-100">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Login') - E-Absensi</title>
+    <title>@yield('title', 'Login') - E-Absensi PT BINTANG ANUGRAH</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,9 +23,12 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <!-- Feather Icons -->
+    <script src="https://unpkg.com/feather-icons"></script>
+
     <style>
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
     </style>
 </head>
@@ -33,13 +36,22 @@
 
     @yield('content')
 
+    <!-- Initialize Feather Icons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+        });
+    </script>
+
     <!-- SweetAlert Global Notification handler -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             @if(session('error'))
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal!',
+                    title: 'Gagal Masuk',
                     text: "{{ session('error') }}",
                     confirmButtonColor: '#ef4444'
                 });
@@ -48,8 +60,8 @@
             @if($errors->any())
                 Swal.fire({
                     icon: 'error',
-                    title: 'Oops...',
-                    html: `<ul class="text-left list-disc list-inside text-sm text-red-500">
+                    title: 'Perhatian!',
+                    html: `<ul class="text-left list-disc list-inside text-sm text-red-500 space-y-1">
                         @foreach($errors->all() as $error)
                             <li>{{ $error }}</li>
                         @endforeach
