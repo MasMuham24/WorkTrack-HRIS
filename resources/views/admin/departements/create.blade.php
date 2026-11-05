@@ -23,6 +23,25 @@
             @csrf
             
             <div class="p-5 sm:p-8 space-y-5">
+                <!-- Kantor / Office -->
+                <div>
+                    <label for="office_id" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Kantor / Office <span class="text-rose-500">*</span>
+                    </label>
+                    <select name="office_id" id="office_id" required
+                        class="block w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-slate-800 bg-white">
+                        <option value="">-- Pilih Kantor --</option>
+                        @foreach($offices as $office)
+                            <option value="{{ $office->id }}" {{ old('office_id') == $office->id ? 'selected' : '' }}>
+                                {{ $office->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('office_id')
+                        <p class="mt-1 text-xs text-rose-500 font-semibold">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <!-- Nama Departemen -->
                 <div>
                     <label for="name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">

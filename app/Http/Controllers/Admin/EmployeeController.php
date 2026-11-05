@@ -35,7 +35,7 @@ class EmployeeController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $departments = Departemen::orderBy('name')->get();
+        $departments = Departemen::query()->orderBy('name', 'asc')->get();
 
         return view('management.employees.index', compact('employees', 'search', 'departments', 'departementId', 'status'));
     }
@@ -75,6 +75,7 @@ class EmployeeController extends Controller
 
         $departments = Departemen::query()->orderBy('name', 'asc')->get();
         $positions = Position::query()->orderBy('name', 'asc')->get();
+
         return view('management.employees.edit', compact(
             'employee',
             'departments',

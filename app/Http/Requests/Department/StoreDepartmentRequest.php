@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Department;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreDepartmentRequest extends FormRequest
 {
@@ -20,8 +21,23 @@ class StoreDepartmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:100', 'unique:departemens,name'],
-            'description' => ['nullable', 'string', 'max:255'],
+            'office_id' => [
+                'required',
+                'exists:offices,id',
+            ],
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('departemens', 'name')->where(function ($query) {
+                    return $query->where('office_id', $this->office_id);
+                }),
+            ],
+            'description' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
         ];
     }
 
@@ -31,9 +47,11 @@ class StoreDepartmentRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'office_id.required' => 'Kantor wajib dipilih.',
+            'office_id.exists' => 'Kantor yang dipilih tidak valid.',
             'name.required' => 'Nama departemen wajib diisi.',
-            'name.unique'   => 'Nama departemen sudah digunakan.',
-            'name.max'      => 'Nama departemen maksimal 100 karakter.',
+            'name.unique' => 'Nama departemen sudah digunakan pada kantor ini.',
+            'name.max' => 'Nama departemen maksimal 100 karakter.',
             'description.max' => 'Deskripsi maksimal 255 karakter.',
         ];
     }

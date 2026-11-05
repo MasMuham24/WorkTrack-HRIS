@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePositionRequest;
 use App\Http\Requests\UpdatePositionRequest;
 use App\Models\Departemen;
 use App\Models\Position;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 
 class PositionController extends Controller
 {
@@ -37,7 +37,8 @@ class PositionController extends Controller
      */
     public function create()
     {
-        $departements = Departemen::orderBy('name')->get();
+        $departements = Departemen::query()->orderBy('name', 'asc')->get();
+
         return view('admin.positions.create', compact('departements'));
     }
 
@@ -47,6 +48,7 @@ class PositionController extends Controller
     public function store(StorePositionRequest $request)
     {
         Position::create($request->validated());
+
         return redirect()->route('management.positions.index')->with('success', 'Position berhasil ditambahkan');
     }
 
@@ -63,7 +65,8 @@ class PositionController extends Controller
      */
     public function edit(Position $position)
     {
-        $departements = Departemen::orderBy('name')->get();
+        $departements = Departemen::query()->orderBy('name', 'asc')->get();
+
         return view('admin.positions.edit', compact('position', 'departements'));
     }
 
@@ -73,6 +76,7 @@ class PositionController extends Controller
     public function update(UpdatePositionRequest $request, Position $position)
     {
         $position->update($request->validated());
+
         return redirect()->route('management.positions.index')->with('success', 'Position berhasil diupdate');
     }
 
@@ -82,6 +86,7 @@ class PositionController extends Controller
     public function destroy(Position $position)
     {
         $position->delete();
+
         return redirect()->route('management.positions.index')->with('success', 'Position berhasil dihapus');
     }
 }

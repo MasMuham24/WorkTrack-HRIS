@@ -24,6 +24,18 @@
             @method('PUT')
             
             <div class="p-5 sm:p-8 space-y-5">
+                <!-- Kantor / Office (Read-Only) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Kantor / Office
+                    </label>
+                    <div class="flex items-center px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs sm:text-sm text-slate-700 font-semibold">
+                        <i data-feather="map-pin" class="w-4 h-4 mr-2 text-slate-400"></i>
+                        <span>{{ $departemen->office->name ?? 'Tidak ada kantor' }}</span>
+                    </div>
+                    <p class="mt-1 text-[11px] text-slate-400">Kantor departemen bersifat permanen dan tidak dapat dipindahkan.</p>
+                </div>
+
                 <!-- Nama Departemen -->
                 <div>
                     <label for="name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">

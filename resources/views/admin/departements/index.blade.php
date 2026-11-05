@@ -64,7 +64,12 @@
                                 <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">
                                     <i data-feather="briefcase" class="w-4 h-4"></i>
                                 </div>
-                                <span>{{ $dept->name }}</span>
+                                <div>
+                                    <span>{{ $dept->name }}</span>
+                                    @if($dept->office)
+                                        <span class="block text-[11px] font-normal text-slate-400">{{ $dept->office->name }}</span>
+                                    @endif
+                                </div>
                             </div>
                         </td>
                         <td class="px-5 py-3.5 text-slate-600 text-xs sm:text-sm">

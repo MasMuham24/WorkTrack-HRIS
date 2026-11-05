@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Department;
 
+use App\Models\Departemen;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -19,18 +20,27 @@ class UpdateDepartmentRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
+        $departemen = $this->route('departemen');
+        $departemenId = $departemen instanceof Departemen ? $departemen->id : $departemen;
+        $officeId = $departemen instanceof Departemen
+            ? $departemen->office_id
+            : Departemen::where('id', $departemenId)->value('office_id');
+
         return [
             'name' => [
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('departemens', 'name')->ignore($this->departemen),
+                Rule::unique('departemens', 'name')
+                    ->where(function ($query) use ($officeId) {
+                        return $query->where('office_id', $officeId);
+                    })
+                    ->ignore($departemenId),
             ],
-
             'description' => [
                 'nullable',
                 'string',
@@ -38,13 +48,16 @@ class UpdateDepartmentRequest extends FormRequest
             ],
         ];
     }
-    
+
+    /**
+     * Custom validation messages.
+     */
     public function messages(): array
     {
         return [
             'name.required' => 'Nama departemen wajib diisi.',
-            'name.unique'   => 'Nama departemen sudah digunakan.',
-            'name.max'      => 'Nama departemen maksimal 100 karakter.',
+            'name.unique' => 'Nama departemen sudah digunakan pada kantor ini.',
+            'name.max' => 'Nama departemen maksimal 100 karakter.',
             'description.max' => 'Deskripsi maksimal 255 karakter.',
         ];
     }

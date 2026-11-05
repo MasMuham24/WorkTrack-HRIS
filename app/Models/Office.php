@@ -25,6 +25,21 @@ class Office extends Model
         'radius' => 'integer',
     ];
 
+    public function departements(): HasMany
+    {
+        return $this->hasMany(Departemen::class);
+    }
+
+    public function positions(): HasMany
+    {
+        return $this->hasMany(Position::class);
+    }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
     public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class);

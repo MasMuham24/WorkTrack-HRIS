@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,7 +10,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 /**
- * @mixin \Illuminate\Database\Eloquent\Builder
+ * @mixin Builder
+ *
  * @method static int count(string $columns = '*')
  * @method static \Illuminate\Database\Eloquent\Builder employees()
  * @method bool|null delete()
@@ -19,6 +21,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
+        'office_id',
         'employee_code',
         'departement_id',
         'position_id',
@@ -52,6 +55,11 @@ class User extends Authenticatable
     | Relationships
     |--------------------------------------------------------------------------
     */
+
+    public function office(): BelongsTo
+    {
+        return $this->belongsTo(Office::class);
+    }
 
     public function department(): BelongsTo
     {
@@ -91,7 +99,12 @@ class User extends Authenticatable
 
     public function isHR(): bool
     {
-        return $this->role === 'hr';
+        return in_array($this->role, ['hr', 'hr_manager']);
+    }
+
+    public function isHRManager(): bool
+    {
+        return $this->role === 'hr_manager';
     }
 
     public function isEmployee(): bool
@@ -111,6 +124,6 @@ class User extends Authenticatable
      */
     public function scopeEmployees($query)
     {
-        return $query->whereIn('role', ['employee', 'hr']);
+        return $query->whereIn('role', ['employee', 'hr', 'hr_manager']);
     }
 }

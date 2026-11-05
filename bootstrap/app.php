@@ -1,9 +1,10 @@
 <?php
 
-use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Support\Facades\Auth;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,16 +14,17 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'role' => RoleMiddleware::class,
         ]);
-        
+
         $middleware->redirectTo(
             guests: '/login',
             users: function () {
-                $user = \Illuminate\Support\Facades\Auth::user();
+                $user = Auth::user();
+
                 return match ($user?->role) {
                     'admin' => '/admin/dashboard',
-                    'hr' => '/hr/dashboard',
+                    'hr_manager', 'hr' => '/hr/dashboard',
                     'employee' => '/employee/dashboard',
                     default => '/login',
                 };

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Attendance;
 use App\Models\Departemen;
+use App\Models\Office;
 use App\Models\Position;
 use App\Models\User;
 use Carbon\Carbon;
@@ -187,7 +188,22 @@ class AttendanceExportTest extends TestCase
     {
         $hr = $this->createHR();
 
-        $dept = Departemen::create(['name' => 'Teknologi Informasi']);
+        $office = Office::firstOrCreate(
+            ['id' => 1],
+            [
+                'name' => 'PT SUKA MAJU SEJAHTERA',
+                'latitude' => -6.895055,
+                'longitude' => 110.617490,
+                'radius' => 50,
+                'check_in_time' => '08:00:00',
+                'check_out_time' => '16:00:00',
+            ]
+        );
+
+        $dept = Departemen::create([
+            'office_id' => $office->id,
+            'name' => 'Teknologi Informasi',
+        ]);
         $pos = Position::create([
             'departement_id' => $dept->id,
             'name' => 'Software Engineer',

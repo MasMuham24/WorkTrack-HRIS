@@ -40,7 +40,7 @@ class AttendanceController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $departments = Departemen::orderBy('name')->get();
+        $departments = Departemen::query()->orderBy('name', 'asc')->get();
 
         return view('admin.attendances.index', compact('attendances', 'departments', 'search', 'date', 'status', 'departementId'));
     }
