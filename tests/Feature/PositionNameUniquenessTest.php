@@ -26,16 +26,12 @@ class PositionNameUniquenessTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
         $this->admin = User::factory()->create([
             'role' => 'admin',
         ]);
-
         $this->officeA = $this->createOffice('Kantor A');
         $this->officeB = $this->createOffice('Kantor B');
-
-        $this->departmentA = $this->createDepartment(
-            'Departemen A',
+        $this->departmentA = $this->createDepartment('Departemen A',
             $this->officeA->id
         );
 

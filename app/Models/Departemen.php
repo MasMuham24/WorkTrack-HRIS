@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @mixin Builder
  *
  * @method static int count(string $columns = '*')
+ * @method static \Illuminate\Database\Eloquent\Builder where(string|array|\Closure $column, mixed $operator = null, mixed $value = null, string $boolean = 'and')
  * @method bool|null delete()
  */
 class Departemen extends Model

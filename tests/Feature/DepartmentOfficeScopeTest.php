@@ -84,7 +84,7 @@ class DepartmentOfficeScopeTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors(['name']);
-        $this->assertCount(1, Departemen::where('office_id', $office->id)->where('name', 'Human Resource')->get());
+        $this->assertCount(1, Departemen::query()->where('office_id', $office->id)->where('name', 'Human Resource')->get());
     }
 
     /**
@@ -150,7 +150,7 @@ class DepartmentOfficeScopeTest extends TestCase
             ]);
         }
 
-        $departemens = Departemen::where('office_id', 1)->get();
+        $departemens = Departemen::query()->where('office_id', 1)->get();
         $this->assertCount(5, $departemens);
         foreach ($departemens as $dept) {
             $this->assertSame(1, (int) $dept->office_id);
@@ -264,7 +264,7 @@ class DepartmentOfficeScopeTest extends TestCase
         ]);
         $response->assertRedirect(route('management.departments.index'));
 
-        $dept = Departemen::where('name', 'Quality Assurance')->firstOrFail();
+        $dept = Departemen::query()->where('name', 'Quality Assurance')->firstOrFail();
 
         // Edit view
         $response = $this->actingAs($this->admin())->get(route('management.departments.edit', ['departemen' => $dept->id]));
