@@ -1,36 +1,42 @@
 # WorkTrack HRIS
 ### Employee Management & Geolocation-Based Attendance Platform
 
-**WorkTrack HRIS** is a web-based Human Resource Information System designed to streamline employee administration, organizational management, and attendance operations.
+WorkTrack HRIS is a web-based Human Resource Information System designed to simplify employee administration, organizational management, attendance tracking, and leave management.
 
-Built with Laravel 12, Blade, Tailwind CSS, Alpine.js, and MySQL, the platform combines role-based access control, office-aware organizational structures, and geolocation-based attendance validation into a centralized HR management application.
+Built with **Laravel 12, Blade, Tailwind CSS v4, Alpine.js, and MySQL**, WorkTrack provides a centralized platform for managing workforce operations with role-based access control, office-aware organizational structures, and GPS-based attendance validation.
 
 > **Project Status:** Active Development  
-> **Category:** Full-Stack Web Application · HRIS · Workforce Management
+> **Project Category:** Full-Stack Web Application · HRIS · Workforce Management
 
 ---
 
 ## 01. Project Overview
 
-Managing employee information and attendance across an organization requires consistent data, reliable validation, and clear access boundaries.
+Managing employee information, attendance, and organizational structures across multiple office locations can become increasingly complex when handled manually.
 
-WorkTrack addresses these needs through a centralized HR management platform that supports three operational roles: Admin, HR, and Employee.
+WorkTrack HRIS aims to address these challenges through a centralized workforce management platform that supports essential HR operations.
 
-The system is designed around practical HR workflows, including employee administration, department and position management, attendance tracking, leave approval, and attendance reporting.
+The application currently provides three operational roles:
 
-A key engineering focus is the development of an office-aware organizational structure that can serve as the foundation for future multi-company support.
+- **Admin:** System and organizational administration.
+- **HR:** Employee administration, attendance monitoring, leave approval, and reporting.
+- **Employee:** Personal attendance, leave requests, and profile management.
 
-## 02. Key Highlights
+The project is currently evolving from a single-company application toward a multi-company SaaS architecture.
 
-- **Role-Based Access Control:** Separate permissions and workflows for Admin, HR, and Employee.
-- **Geolocation Attendance:** Validate attendance locations using GPS coordinates and the Haversine formula.
-- **Office-Aware Organization:** Associate departments and office-specific positions with their respective offices.
-- **Flexible Position Structure:** Support both global and office-specific positions.
-- **Configurable Work Schedules:** Define check-in and check-out schedules for each office.
-- **Attendance Reporting:** Generate monthly attendance reports and export data to Excel and CSV.
-- **Leave Management:** Support employee requests and HR approval workflows.
+Its primary engineering focus is building maintainable business logic, reliable data validation, and secure organizational access boundaries.
 
----
+## 02. Key Features
+
+- **Role-Based Access Control:** Separate dashboards and application permissions.
+- **Employee Management:** Employee records, organizational assignments, and employee status management.
+- **Geolocation Attendance:** GPS-based attendance validation using the Haversine formula.
+- **Office-Aware Organization:** Office-scoped departments and flexible position structures.
+- **Office-Based Scheduling:** Configurable check-in and check-out times for individual offices.
+- **Leave Management:** Employee leave and permit requests with HR approval workflows.
+- **Attendance Notifications:** Notifications for relevant leave request status updates.
+- **Attendance Reporting:** Monthly attendance summaries with Excel and CSV exports.
+- **Data Validation:** Scoped uniqueness validation and server-side business rule enforcement.
 
 ## 03. Core Modules
 
@@ -41,44 +47,43 @@ A key engineering focus is the development of an office-aware organizational str
 - Role-based middleware.
 - Protected application routes.
 - Role-specific dashboards.
-- Profile management and password updates.
+- Profile management.
+- Password updates.
 
-| Role | Primary Responsibilities |
+| Role | Responsibilities |
 |---|---|
-| Admin | System administration, master data, office, and organizational management |
-| HR | Employee administration, attendance, leave approval, and reporting |
+| Admin | Organizational administration, office management, and master data |
+| HR | Employee management, attendance monitoring, leave approval, and reporting |
 | Employee | Personal attendance, leave requests, and profile management |
 
 ### Organizational Management
-
-WorkTrack provides organizational data management with office-level relationships.
 
 **Department Management**
 - Department CRUD operations.
 - Department search and pagination.
 - Office assignment.
 - Office-scoped department records.
+- Duplicate department name validation within the same office.
 
 **Position Management**
 
-The application supports two position types:
+WorkTrack supports two position scopes:
 
-| Type | Description |
+| Position Type | Description |
 |---|---|
-| Global | Shared organizational position that can be associated with departments across offices |
-| Office-Specific | Position scoped to a particular office |
+| Global | Shared organizational position across offices |
+| Office-Specific | Position belonging to a particular office |
 
-Position name validation follows the corresponding scope:
+Position name uniqueness follows the corresponding scope:
 
 - Global position names must be globally unique.
 - Office-specific position names must be unique within the same office.
 - Different offices may use the same office-specific position name.
 - Global and office-specific positions may share the same name.
 
-Departments and positions use a many-to-many relationship through the `departement_position` pivot table.
+Departments and positions are connected through a many-to-many relationship using the `departement_position` pivot table.
 
-### Employee Management
-
+**Employee Management**
 - Employee CRUD operations.
 - Employee search and filtering.
 - Department filtering.
@@ -86,8 +91,7 @@ Departments and positions use a many-to-many relationship through the `departeme
 - Avatar upload.
 - Organizational assignment.
 
-### Office Management
-
+**Office Management**
 - Office CRUD operations.
 - Office coordinate configuration.
 - Attendance radius configuration.
@@ -96,38 +100,39 @@ Departments and positions use a many-to-many relationship through the `departeme
 ### Attendance Management
 
 - Employee check-in and check-out.
-- GPS-based location validation.
+- Browser-based GPS detection.
+- Office geofence validation.
 - Attendance history.
 - Late attendance detection.
 - Office schedule validation.
 - Attendance filtering and monitoring.
 - GPS accuracy and distance information.
 
-### Leave Management
+### Leave & Permit Management
 
 - Employee leave and permit requests.
 - Leave request history.
 - HR approval and rejection.
 - Leave status tracking.
 - Employee notifications when requests are approved.
+- Separate leave and permit management workflows.
 
 ### Attendance Reporting
 
 - Monthly attendance summaries.
-- Date and department filtering.
+- Date filtering.
+- Department filtering.
 - Attendance status filtering.
 - Excel (`.xlsx`) export.
 - CSV export.
 
----
-
 ## 04. Geolocation-Based Attendance
 
-One of WorkTrack's main technical features is location-based attendance validation.
+One of WorkTrack's core technical features is GPS-based attendance validation.
 
-The application uses the browser Geolocation API to obtain employee coordinates and compares them with the configured office location.
+The application uses the browser Geolocation API to obtain employee coordinates and compares them with registered office coordinates.
 
-**Validation process**
+### Attendance Validation Flow
 
 ```text
 Employee
@@ -159,34 +164,30 @@ Within Radius         Outside Radius
 Attendance Accepted   Attendance Rejected
 ```
 
-**Attendance validation includes:**
+### Attendance Validation Rules
 
-- Browser GPS permission handling.
+- GPS permission handling.
 - Latitude and longitude detection.
 - GPS accuracy recording.
 - Geographic distance calculation.
 - Office radius validation.
 - Attendance location recording.
-- Google Maps coordinate integration.
+- Nearest office identification.
+- Duplicate daily check-in prevention.
 
 ### Office-Based Work Schedule
 
 Each office can define its own attendance schedule.
 
-Current scheduling behavior includes:
+Current scheduling behavior:
 
 - Configurable check-in time.
 - Configurable check-out time.
 - Five-minute lateness tolerance.
-- Late-minute calculation based on the scheduled check-in time.
+- Late-minute calculation based on the original scheduled check-in time.
+- Check-out availability based on the configured office schedule.
 
----
-
-## 05. Technical Architecture
-
-WorkTrack follows Laravel's MVC architecture with dedicated Form Requests, Eloquent relationships, middleware, and service-based business logic.
-
-### Technology Stack
+## 05. Technology Stack
 
 | Layer | Technology |
 |---|---|
@@ -198,26 +199,29 @@ WorkTrack follows Laravel's MVC architecture with dedicated Form Requests, Eloqu
 | Database | MySQL |
 | ORM | Eloquent |
 | Geolocation | Browser Geolocation API |
-| Map Integration | Leaflet and Google Maps |
+| Map Integration | Leaflet |
 | Testing | PHPUnit |
+| Code Formatting | Laravel Pint |
+| Version Control | Git & GitHub |
 
 ### Engineering Practices
 
 - MVC architecture.
-- Role-based authorization.
 - Form Request validation.
+- Role-based authorization.
 - Eloquent model relationships.
 - Service-oriented business logic.
-- Database migrations.
-- Scoped uniqueness constraints.
+- Database migrations and seeders.
+- Scoped uniqueness validation.
 - Feature testing.
 - Server-side validation.
+- Relational database integrity.
 
----
+## 06. Database Architecture
 
-## 06. Database Design
+The current application uses a relational database structure.
 
-Main application tables:
+### Main Application Tables
 
 ```text
 users
@@ -237,15 +241,15 @@ leave_requests
           +--------+--------+
           |        |        |
           v        v        v
-     Department Position  Employees
+      Department Position Employees
           |        |
           +---+----+
               |
-       Department-Position
-             Pivot
+      Department-Position
+            Pivot
 ```
 
-The organizational model supports:
+The current organizational model supports:
 
 - Departments assigned to offices.
 - Global positions.
@@ -254,11 +258,53 @@ The organizational model supports:
 - Employee organizational assignments.
 - Office references in attendance records.
 
-The current architecture is a single-tenant application undergoing preparation for future company-level data isolation.
+### Current Architecture Status
 
----
+WorkTrack currently operates as a **single-tenant application**.
 
-## 07. Project Structure
+The database has not yet completed the company-level data isolation implementation.
+
+A transition toward a Shared Database + Shared Schema multi-tenant architecture is planned.
+
+## 07. Multi-Tenant Architecture Roadmap
+
+The next major architectural milestone is transforming WorkTrack into a multi-company HRIS SaaS platform.
+
+The following decisions have been established for the planned architecture.
+
+| Component | Architectural Decision |
+|---|---|
+| Tenant Model | Company-based tenancy |
+| Database Strategy | Shared Database + Shared Schema |
+| Company Registration | Self-service / Hybrid |
+| Company Owner | Automatically assigned as Owner membership |
+| Initial Trial | 14 days |
+| Platform Administration | Separate Platform Admin |
+| Company Lifecycle | Trial, Active, Inactive, and Suspended management |
+| HR Access | Configurable branch/office-level access |
+| Data Isolation | Company-level server-side isolation |
+
+### Planned Company Lifecycle
+
+1. A user registers independently.
+2. The user creates a company.
+3. The registering user receives Owner membership.
+4. The new company receives a 14-day trial.
+5. Platform Admin can verify, activate, suspend, and manage companies.
+6. When the trial expires, operational access is restricted until activation.
+7. Company data is retained rather than automatically deleted.
+
+### Planned Access Structure
+
+- **Platform Admin:** Platform-wide company administration.
+- **Owner:** Full access to all branches and offices within their company.
+- **HR Manager:** Broad or assigned-branch access depending on configured permissions.
+- **HR Staff:** Restricted access to assigned branches or offices.
+- **Employee:** Access to personal workforce information and permitted operations.
+
+> **Important:** These are established architectural decisions for future implementation. They should not be interpreted as completed application features.
+
+## 08. Project Structure
 
 ```text
 WorkTrack-HRIS/
@@ -295,9 +341,7 @@ WorkTrack-HRIS/
 +-- README.md
 ```
 
----
-
-## 08. Installation & Setup
+## 09. Installation & Setup
 
 ### Prerequisites
 
@@ -305,9 +349,9 @@ WorkTrack-HRIS/
 - Composer.
 - Node.js and npm.
 - MySQL.
-- PHP extensions required by Laravel.
+- Required PHP extensions for Laravel.
 
-### Clone the Repository
+### Clone Repository
 
 ```bash
 git clone https://github.com/MasMuham24/WorkTrack-HRIS.git
@@ -319,6 +363,7 @@ cd WorkTrack-HRIS
 
 ```bash
 composer install
+
 npm install
 ```
 
@@ -347,7 +392,7 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-### Run Database Migrations
+### Run Migrations and Seeders
 
 ```bash
 php artisan migrate --seed
@@ -365,7 +410,7 @@ php artisan storage:link
 npm run build
 ```
 
-### Start the Development Server
+### Start Development Server
 
 ```bash
 php artisan serve
@@ -383,11 +428,9 @@ For frontend development:
 npm run dev
 ```
 
----
+## 10. Testing & Code Quality
 
-## 09. Testing & Code Quality
-
-WorkTrack includes feature tests for important application workflows and business rules.
+WorkTrack includes automated feature tests covering application workflows, authorization, validation, and business rules.
 
 Run the test suite:
 
@@ -399,6 +442,12 @@ Format PHP code:
 
 ```bash
 vendor/bin/pint --dirty
+```
+
+Check code differences:
+
+```bash
+git diff --check
 ```
 
 Inspect registered routes:
@@ -413,46 +462,42 @@ Check migration status:
 php artisan migrate:status
 ```
 
-**Latest development test snapshot:** 69 tests passed, with 464 assertions.
+Test coverage and passing test counts evolve throughout development. Refer to the latest test execution for the current results.
 
----
-
-## 10. Development Roadmap
-
-The project is actively evolving toward a more complete workforce management platform.
+## 11. Development Roadmap
 
 | Area | Planned Development |
 |---|---|
 | Multi-Tenancy | Company-level data isolation |
-| Platform Administration | Separate Platform Admin |
-| Workforce Management | Shift and work schedule management |
-| Leave Management | Leave balance management |
+| Company Management | Company registration and lifecycle management |
+| Platform Administration | Separate Platform Admin dashboard |
+| Access Control | Company and branch-level permissions |
+| Workforce Management | Advanced shift management |
+| Leave Management | Leave balance and entitlement management |
 | Payroll | Payroll processing |
 | Attendance | Overtime management |
-| Compliance | Audit logs |
+| Compliance | Audit logs and activity tracking |
 | Analytics | Advanced HR dashboards |
 | Integration | API integration |
 | Mobile | Mobile application |
 
-These items represent planned development, not currently completed features.
+These items represent planned development and are not necessarily available in the current application.
 
----
+## 12. Engineering Focus
 
-## 11. Engineering Focus
+WorkTrack is developed with an emphasis on practical software engineering and maintainable application architecture.
 
-The development of WorkTrack emphasizes practical software engineering concerns:
+Key engineering considerations include:
 
 - Designing relational data structures for organizational hierarchies.
-- Implementing authorization boundaries across application roles.
+- Implementing role-based authorization boundaries.
 - Building reusable validation rules.
-- Maintaining data integrity through database constraints.
-- Handling geolocation-based business logic.
-- Testing application behavior through feature tests.
-- Preparing a single-tenant application for a future multi-tenant architecture.
+- Maintaining data integrity through application and database constraints.
+- Developing geolocation-based business logic.
+- Testing application behavior through automated feature tests.
+- Preparing the existing application for future multi-tenant architecture.
 
----
-
-## 12. Author
+## 13. Author
 
 **Muhammad Syafi'i**
 
@@ -467,4 +512,6 @@ Software Developer · Laravel & Backend Development
 
 **Active Development**
 
-WorkTrack HRIS is an ongoing software engineering project focused on building a maintainable, secure, and extensible HR management platform.
+WorkTrack HRIS is an ongoing software engineering project focused on building a maintainable, secure, and extensible workforce management platform.
+
+The current development phase focuses on strengthening organizational data management and preparing the application for its planned multi-company SaaS architecture.
