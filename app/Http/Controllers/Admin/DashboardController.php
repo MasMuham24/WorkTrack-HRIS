@@ -15,21 +15,11 @@ class DashboardController extends Controller
     public function index(): View
     {
         $today = Carbon::today();
-
-        $totalEmployees = User::where('role', 'employee')->count();
-        $presentToday = Attendance::whereDate('attendance_date', $today)->count();
+        $totalEmployees = User::query()->where('role', 'employee')->count();
+        $presentToday = Attendance::query()->whereDate('attendance_date', $today)->count();
         $absentToday = max(0, $totalEmployees - $presentToday);
-        $leaveToday = LeaveRequest::where('status', 'approved')
-            ->whereDate('start_date', '<=', $today)
-            ->whereDate('end_date', '>=', $today)
-            ->count();
-
-        $recentAttendances = Attendance::with(['user', 'user.department'])
-            ->whereDate('attendance_date', $today)
-            ->latest()
-            ->take(5)
-            ->get();
-
+        $leaveToday = LeaveRequest::query()->where('status', 'approved')->whereDate('start_date', '<=', $today)->whereDate('end_date', '>=', $today)->count();
+        $recentAttendances = Attendance::with(['user', 'user.department'])->whereDate('attendance_date', $today)->latest()->take(5)->get();
         return view('admin.dashboard', compact(
             'totalEmployees',
             'presentToday',
