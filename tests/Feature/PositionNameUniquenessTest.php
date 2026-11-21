@@ -12,34 +12,20 @@ use Tests\TestCase;
 class PositionNameUniquenessTest extends TestCase
 {
     use RefreshDatabase;
-
     private User $admin;
-
     private Office $officeA;
-
     private Office $officeB;
-
     private Departemen $departmentA;
-
     private Departemen $departmentB;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create([
-            'role' => 'admin',
-        ]);
+        $this->admin = User::factory()->create(['role' => 'admin']);
         $this->officeA = $this->createOffice('Kantor A');
         $this->officeB = $this->createOffice('Kantor B');
-        $this->departmentA = $this->createDepartment('Departemen A',
-            $this->officeA->id
-        );
-
-        $this->departmentB = $this->createDepartment(
-            'Departemen B',
-            $this->officeB->id
-        );
-
+        $this->departmentA = $this->createDepartment('Departemen A', $this->officeA->id);
+        $this->departmentB = $this->createDepartment('Departemen B', $this->officeB->id);
         $this->actingAs($this->admin);
     }
 
@@ -55,9 +41,7 @@ class PositionNameUniquenessTest extends TestCase
         ]);
     }
 
-    private function createDepartment(
-        string $name,
-        int $officeId
+    private function createDepartment(string $name, int $officeId
     ): Departemen {
         return Departemen::create([
             'name' => $name,
@@ -74,10 +58,7 @@ class PositionNameUniquenessTest extends TestCase
         ];
     }
 
-    private function officePayload(
-        string $name,
-        Office $office,
-        Departemen $department
+    private function officePayload(string $name, Office $office, Departemen $department
     ): array {
         return [
             'name' => $name,
@@ -99,7 +80,6 @@ class PositionNameUniquenessTest extends TestCase
             route('management.positions.store'),
             $this->globalPayload('Manager')
         );
-
         $response->assertSessionHasErrors('name');
     }
 
@@ -110,16 +90,11 @@ class PositionNameUniquenessTest extends TestCase
             'position_type' => 'office_specific',
             'office_id' => $this->officeA->id,
         ]);
-
-        $response = $this->post(
-            route('management.positions.store'),
-            $this->officePayload(
-                'Supervisor',
-                $this->officeA,
-                $this->departmentA
-            )
+        $response = $this->post(route('management.positions.store'), $this->officePayload('Supervisor',
+            $this->officeA,
+            $this->departmentA
+        )
         );
-
         $response->assertSessionHasErrors('name');
     }
 
@@ -131,13 +106,11 @@ class PositionNameUniquenessTest extends TestCase
             'office_id' => $this->officeA->id,
         ]);
 
-        $response = $this->post(
-            route('management.positions.store'),
-            $this->officePayload(
-                'Supervisor',
-                $this->officeB,
-                $this->departmentB
-            )
+        $response = $this->post(route('management.positions.store'), $this->officePayload(
+            'Supervisor',
+            $this->officeB,
+            $this->departmentB
+        )
         );
 
         $response->assertSessionHasNoErrors();
@@ -156,15 +129,11 @@ class PositionNameUniquenessTest extends TestCase
             'office_id' => null,
         ]);
 
-        $response = $this->post(
-            route('management.positions.store'),
-            $this->officePayload(
-                'Manager',
-                $this->officeA,
-                $this->departmentA
-            )
+        $response = $this->post(route('management.positions.store'), $this->officePayload('Manager',
+            $this->officeA,
+            $this->departmentA
+        )
         );
-
         $response->assertSessionHasNoErrors();
     }
 
@@ -175,7 +144,6 @@ class PositionNameUniquenessTest extends TestCase
             'position_type' => 'global',
             'office_id' => null,
         ]);
-
         $response = $this->put(
             route('management.positions.update', $position),
             $this->globalPayload('Manager')

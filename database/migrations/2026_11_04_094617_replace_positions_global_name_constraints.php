@@ -11,27 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $invalidPositions = DB::table('positions')
-            ->where(function ($query) {
-                $query->where(function ($query) {
-                    $query->where('position_type', 'global')
-                        ->whereNotNull('office_id');
-                })->orWhere(function ($query) {
-                    $query->where('position_type', 'office_specific')
-                        ->whereNull('office_id');
-                });
-            })
-            ->exists();
-
+        $invalidPositions = DB::table('positions')->where(function ($query) {
+            $query->where(function ($query) {
+                $query->where('position_type', 'global')->whereNotNull('office_id');
+            })->orWhere(function ($query) {
+                $query->where('position_type', 'office_specific')->whereNull('office_id');
+            });
+        })->exists();
         if ($invalidPositions) {
             throw new RuntimeException(
                 'Migration dibatalkan: ditemukan posisi dengan office_id tidak konsisten.'
             );
         }
-
         $driver = DB::getDriverName();
-
-        // Tambahkan generated column untuk posisi global jika belum ada.
         if (! Schema::hasColumn('positions', 'global_name')) {
             if ($driver === 'mysql') {
                 DB::statement("
@@ -46,14 +38,10 @@ return new class extends Migration
                 ");
             } else {
                 Schema::table('positions', function ($table) {
-                    $table->string('global_name', 100)
-                        ->nullable()
-                        ->storedAs("CASE WHEN position_type = 'global' THEN name ELSE NULL END");
+                    $table->string('global_name', 100)->nullable()->storedAs("CASE WHEN position_type = 'global' THEN name ELSE NULL END");
                 });
             }
         }
-
-        // Tambahkan generated column untuk posisi khusus kantor jika belum ada.
         if (! Schema::hasColumn('positions', 'office_specific_name')) {
             if ($driver === 'mysql') {
                 DB::statement("
@@ -68,37 +56,21 @@ return new class extends Migration
                 ");
             } else {
                 Schema::table('positions', function ($table) {
-                    $table->string('office_specific_name', 100)
-                        ->nullable()
-                        ->storedAs("CASE WHEN position_type = 'office_specific' THEN name ELSE NULL END");
+                    $table->string('office_specific_name', 100)->nullable()->storedAs("CASE WHEN position_type = 'office_specific' THEN name ELSE NULL END");
                 });
             }
         }
-
-        // Buat unique index pengganti dan hapus unique index lama.
         Schema::table('positions', function ($table) {
             if (! Schema::hasIndex('positions', 'positions_global_name_unique')) {
-                $table->unique(
-                    'global_name',
-                    'positions_global_name_unique'
-                );
+                $table->unique('global_name','positions_global_name_unique');
             }
-
             if (! Schema::hasIndex('positions', 'positions_office_specific_name_unique')) {
-                $table->unique(
-                    ['office_id', 'office_specific_name'],
-                    'positions_office_specific_name_unique'
-                );
+                $table->unique(['office_id', 'office_specific_name'], 'positions_office_specific_name_unique');
             }
-
             if (Schema::hasIndex('positions', 'positions_name_unique')) {
                 $table->dropUnique('positions_name_unique');
             }
         });
-
-        // Catatan: CHECK constraint untuk (position_type, office_id) ditiadakan di MySQL level
-        // karena MySQL error 3823 (kolom office_id digunakan pada FK dengan ON UPDATE CASCADE).
-        // Integritas position_type dan office_id ditegakkan pada validasi aplikasi (Model & FormRequest).
     }
 
     /**

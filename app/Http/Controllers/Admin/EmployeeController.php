@@ -17,24 +17,12 @@ class EmployeeController extends Controller
         $search = $request->search;
         $departementId = $request->departement_id;
         $status = $request->status;
-
-        $employees = User::query()
-            ->with(['department', 'position'])
-            ->employees()
+        $employees = User::query()->with(['department', 'position'])->employees()
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('employee_code', 'like', "%{$search}%")
-                        ->orWhere('name', 'like', "%{$search}%")
-                        ->orWhere('username', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
+                    $q->where('employee_code', 'like', "%{$search}%")->orWhere('name', 'like', "%{$search}%")->orWhere('username', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%");
                 });
-            })
-            ->when($departementId, fn ($query) => $query->where('departement_id', $departementId))
-            ->when($status, fn ($query) => $query->where('status', $status))
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
-
+            })->when($departementId, fn ($query) => $query->where('departement_id', $departementId))->when($status, fn ($query) => $query->where('status', $status))->latest()->paginate(10)->withQueryString();
         $departments = Departemen::query()->orderBy('name', 'asc')->get();
 
         return view('management.employees.index', compact('employees', 'search', 'departments', 'departementId', 'status'));
